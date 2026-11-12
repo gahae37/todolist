@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#ffffff">
+<title>TodoList</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --soft: #f6f5f3;
+    --text: #2f2f33;
+    --sub: #7a7a80;
+    --muted: #b3b3b8;
+    --line: #f0efed;
+    --sun: #e28b8b;
+    --sat: #7e9dd6;
+    --good: #9ccb8b;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; }
+  body {
+    min-height: 100vh; min-height: 100dvh;
+    background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; padding: 0; }
+  button:active { opacity: .6; }
+  svg { display: block; }
+  .app {
+    max-width: 480px; margin: 0 auto;
+    padding: calc(14px + env(safe-area-inset-top)) 20px calc(48px + env(safe-area-inset-bottom));
+  }
+  .fade { animation: fade .2s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+
+  /* ---------- 상단 ---------- */
+  .bar { display: flex; align-items: center; justify-content: space-between; height: 44px; }
+  .brand { font-size: 15px; font-weight: 800; letter-spacing: -0.3px; }
+  .actions { display: flex; align-items: center; gap: 4px; }
+  .icon-btn {
+    width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text);
+  }
+  .pill {
+    height: 32px; padding: 0 14px; border-radius: 999px; background: var(--soft);
+    font-size: 13px; font-weight: 600; color: var(--sub);
+  }
+  .date-head { margin: 10px 0 14px; }
+  .eyebrow { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .date-head h1 { margin: 2px 0 0; font-size: 26px; font-weight: 800; letter-spacing: -0.6px; }
+
+  /* ---------- 주 달력 ---------- */
+  .week { display: flex; align-items: center; margin: 0 -10px; touch-action: pan-y; }
+  .week .icon-btn { width: 32px; color: var(--muted); flex: none; }
+  .week-days { flex: 1; display: grid; grid-template-columns: repeat(7, 1fr); }
+  .wd { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 6px 0; }
+  .wd .w { font-size: 11px; font-weight: 600; color: var(--muted); }
+  .wd.sun .w { color: var(--sun); }
+  .wd.sat .w { color: var(--sat); }
+  .wd .n { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 700; }
+  .wd.today .n { background: var(--soft); }
+  .wd.selected .n { background: var(--text); color: #fff; }
+  .wd .st { width: 5px; height: 5px; border-radius: 50%; }
+  .wd .st.left { background: #dcdad6; }
+  .wd .st.all { background: var(--good); }
+
+  .progress { display: flex; align-items: center; gap: 10px; margin: 18px 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
+  .track { flex: 1; height: 4px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .track i { display: block; height: 100%; background: var(--good); border-radius: 999px; transition: width .3s; }
+
+  /* ---------- 카테고리 & 할 일 ---------- */
+  .cat { margin-top: 26px; }
+  .cat-head { display: flex; align-items: center; gap: 6px; }
+  .cat-name {
+    display: inline-flex; align-items: center; gap: 8px; height: 36px; padding-right: 6px;
+    font-size: 15px; font-weight: 700;
+  }
+  .cat-name i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
+  .cat-count { font-size: 12px; font-weight: 600; color: var(--muted); margin-right: auto; }
+  .add-btn {
+    width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+    color: var(--sub); background: color-mix(in srgb, var(--c) 28%, #fff);
+  }
+
+  .todos { list-style: none; margin: 4px 0 0; padding: 0; }
+  .todo { display: flex; align-items: flex-start; gap: 12px; }
+  .box {
+    flex: none; width: 44px; height: 44px; margin: 0 -11px 0 -11px; display: grid; place-items: center;
+  }
+  .box span {
+    width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center;
+    border: 2px solid color-mix(in srgb, var(--c) 80%, #555);
+    transition: background .15s;
+  }
+  .done .box span, .box.on span { background: var(--c); border-color: var(--c); }
+  .todo-main {
+    flex: 1; min-width: 0; min-height: 44px; padding: 11px 0; text-align: left;
+    border-bottom: 1px solid var(--line);
+  }
+  .todo:last-child .todo-main { border-bottom: none; }
+  .todo-main .t { font-size: 15px; line-height: 1.45; word-break: break-word; }
+  .done .todo-main .t { text-decoration: line-through; color: var(--muted); }
+  .meta { display: flex; align-items: center; gap: 10px; margin-top: 3px; font-size: 12px; color: var(--muted); min-width: 0; }
+  .meta span { display: inline-flex; align-items: center; gap: 3px; min-width: 0; }
+  .meta .memo-prev { overflow: hidden; }
+  .meta .memo-prev em { font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .empty-cat { font-size: 13px; color: var(--muted); padding: 6px 0 4px 18px; }
+
+  .add-cat {
+    display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
+    margin-top: 32px; height: 48px; border-radius: 14px; background: var(--soft);
+    font-size: 14px; font-weight: 600; color: var(--sub);
+  }
+
+  /* ---------- 월 달력 ---------- */
+  .month-bar { display: flex; align-items: center; height: 44px; margin: 0 -12px; }
+  .month-bar h1 { margin: 0 auto 0 0; font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+  .dow, .grid { display: grid; grid-template-columns: repeat(7, 1fr); }
+  .dow { margin-top: 18px; }
+  .dow div { text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); padding-bottom: 6px; }
+  .dow .sun, .cell.sun .num { color: var(--sun); }
+  .dow .sat, .cell.sat .num { color: var(--sat); }
+  .grid { touch-action: pan-y; }
+  .cell { min-height: 64px; padding: 4px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .cell .num { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 600; }
+  .cell.other { opacity: .3; }
+  .cell.today .num { background: var(--soft); }
+  .cell.selected .num { background: var(--text); color: #fff !important; }
+  .dots { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; max-width: 40px; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--c) 80%, #555); }
+  .dot.on { background: var(--c); border-color: var(--c); }
+  .more { font-size: 9px; line-height: 6px; color: var(--muted); }
+  .month-sum { margin-top: 20px; padding: 14px 16px; border-radius: 14px; background: var(--soft); font-size: 14px; color: var(--sub); }
+  .month-sum b { color: var(--text); }
+
+  /* ---------- 바텀 시트 ---------- */
+  .overlay {
+    position: fixed; inset: 0; z-index: 10; background: rgba(30, 30, 34, .28);
+    display: none; align-items: flex-end; justify-content: center;
+  }
+  .overlay.show { display: flex; animation: dim .18s ease; }
+  @keyframes dim { from { opacity: 0; } }
+  .sheet {
+    width: 100%; max-width: 480px; max-height: 88vh; overflow-y: auto; background: #fff;
+    border-radius: 24px 24px 0 0;
+    padding: 10px 20px calc(20px + env(safe-area-inset-bottom));
+    animation: up .24s cubic-bezier(.2, .8, .2, 1);
+  }
+  @keyframes up { from { transform: translateY(40px); } }
+  .grab { width: 36px; height: 4px; border-radius: 999px; background: #e3e2df; margin: 0 auto 16px; }
+  .sheet h3 { margin: 0 0 14px; font-size: 18px; font-weight: 800; }
+  .sheet input[type=text], .sheet textarea {
+    width: 100%; font: inherit; font-size: 16px; color: var(--text);
+    padding: 13px 14px; border-radius: 12px; border: 1.5px solid transparent; background: var(--soft); outline: none;
+  }
+  .sheet input[type=text]:focus, .sheet textarea:focus { border-color: #dcdad6; background: #fff; }
+  .sheet textarea { resize: none; min-height: 120px; line-height: 1.55; }
+  .label { margin: 18px 0 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    height: 36px; padding: 0 14px; border-radius: 999px; background: var(--soft);
+    font-size: 14px; font-weight: 600; color: var(--sub); display: inline-flex; align-items: center; gap: 7px;
+  }
+  .chip i { width: 9px; height: 9px; border-radius: 50%; background: var(--c); }
+  .chip.on { background: var(--text); color: #fff; }
+  .days { display: flex; justify-content: space-between; margin-top: 10px; }
+  .daybtn { width: 40px; height: 40px; border-radius: 50%; background: var(--soft); font-size: 14px; font-weight: 600; }
+  .daybtn.sun { color: var(--sun); }
+  .daybtn.sat { color: var(--sat); }
+  .daybtn.on { background: var(--text); color: #fff; }
+  .hint { margin-top: 10px; font-size: 12px; color: var(--muted); }
+  .swatches { display: flex; flex-wrap: wrap; gap: 12px; }
+  .swatch { width: 36px; height: 36px; border-radius: 50%; background: var(--c); display: grid; place-items: center; }
+  .swatch.on { box-shadow: 0 0 0 3px #fff, 0 0 0 5px color-mix(in srgb, var(--c) 80%, #555); }
+  .sheet-actions { display: flex; align-items: center; gap: 8px; margin-top: 24px; }
+  .spacer { flex: 1; }
+  .btn {
+    height: 48px; padding: 0 20px; border-radius: 14px; background: var(--soft);
+    font-size: 15px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn.primary { background: var(--text); color: #fff; }
+  .btn.ghost { background: none; padding: 0 10px; color: var(--sub); font-weight: 600; }
+  .btn.danger { color: var(--sun); }
+
+  /* 상세(메모) 시트 */
+  .detail-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--sub); }
+  .tag { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; background: color-mix(in srgb, var(--c) 30%, #fff); }
+  .tag i { width: 8px; height: 8px; border-radius: 50%; background: color-mix(in srgb, var(--c) 80%, #555); }
+  .tag.plain { background: var(--soft); }
+  .detail-title { display: flex; align-items: flex-start; gap: 12px; margin: 14px 0 4px; }
+  .detail-title .box { margin-top: -10px; }
+  .detail-title h3 { margin: 0; flex: 1; font-size: 20px; line-height: 1.4; word-break: break-word; }
+  .detail-title.done h3 { text-decoration: line-through; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+<div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+
+<script>
+  // ============ 상수 ============
+  const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+  const COLORS = ['#F4A7B9', '#F8C4A0', '#F5DC8E', '#B5D8A6', '#A8D8E0', '#A9BFEA', '#C7B6E8', '#C9C4BE'];
+  // 이전 버전의 원색 → 파스텔로 변환
+  const OLD_TO_PASTEL = {
+    '#ff6b6b': '#F4A7B9', '#f06595': '#F4A7B9', '#ff922b': '#F8C4A0', '#fcc419': '#F5DC8E',
+    '#51cf66': '#B5D8A6', '#20c997': '#A8D8E0', '#339af0': '#A8D8E0', '#5c7cfa': '#A9BFEA',
+    '#9775fa': '#C7B6E8', '#868e96': '#C9C4BE',
+  };
+  const REPEATS = [['none', '안 함'], ['daily', '매일'], ['weekly', '매주'], ['monthly', '매달'], ['weekdays', '요일 지정']];
+  const KEY = 'todolist.v2';
+
+  // 선 아이콘 (설치 없이 SVG로 직접 그림)
+  const PATHS = {
+    calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/>',
+    left: '<path d="M15 5l-7 7 7 7"/>',
+    right: '<path d="M9 5l7 7-7 7"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    memo: '<rect x="4.5" y="3.5" width="15" height="17" rx="3"/><path d="M8.5 9h7M8.5 13h7M8.5 17h4"/>',
+    repeat: '<path d="M17 3l3 3-3 3"/><path d="M4 12v-1a5 5 0 0 1 5-5h11"/><path d="M7 21l-3-3 3-3"/><path d="M20 12v1a5 5 0 0 1-5 5H4"/>',
+    pencil: '<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 7.5l2 2"/>',
+    trash: '<path d="M4 7h16M10 11v6M14 11v6M9 7V4.5h6V7M6 7l1 13h10l1-13"/>',
+    check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  };
+  const icon = (name, size = 22, sw = 1.7) =>
+    `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PATHS[name]}</svg>`;
+  const CHECK = icon('check', 14, 3);
+
+  // ============ 날짜 유틸 ============
+  const pad = n => String(n).padStart(2, '0');
+  const keyOf = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const parse = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+  const addDays = (k, n) => { const d = parse(k); d.setDate(d.getDate() + n); return keyOf(d); };
+  const todayKey = () => keyOf(new Date());
+  const monthOf = k => { const d = parse(k); return new Date(d.getFullYear(), d.getMonth(), 1); };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  // ============ 상태 ============
+  let data = load();            // { categories: [{id,name,color}], todos: [{id,text,catId,date,repeat,days,done,memo}] }
+  let view = 'day';             // 첫 화면: 주 달력 + 할 일
+  let selected = todayKey();
+  let cursor = monthOf(selected);
+  let sheet = null;
+
+  function load() {
+    try {
+      const s = JSON.parse(localStorage.getItem(KEY));
+      if (s && Array.isArray(s.categories)) {
+        s.categories.forEach(c => { c.color = OLD_TO_PASTEL[c.color.toLowerCase()] || c.color; });
+        s.todos.forEach(t => { t.memo = t.memo || ''; t.done = t.done || {}; });
+        return s;
+      }
+    } catch {}
+    const cats = [
+      { id: uid(), name: '일반', color: '#A9BFEA' },
+      { id: uid(), name: '운동', color: '#F4A7B9' },
+      { id: uid(), name: '공부', color: '#B5D8A6' },
+    ];
+    let todos = [];
+    try { // 첫 버전 데이터가 있으면 옮겨 옴
+      const t = todayKey();
+      todos = (JSON.parse(localStorage.getItem('todolist.v1')) || []).map(o => ({
+        id: o.id || uid(), text: o.text, catId: cats[0].id, date: t, memo: '',
+        repeat: o.repeat || 'none', days: o.days || [], done: o.doneKey ? { [t]: true } : {},
+      }));
+    } catch {}
+    return { categories: cats, todos };
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} }
+
+  // ============ 반복 로직 ============
+  function occursOn(t, k) {
+    if (k < t.date) return false;
+    const d = parse(k), s = parse(t.date);
+    switch (t.repeat) {
+      case 'daily': return true;
+      case 'weekly': return d.getDay() === s.getDay();
+      case 'monthly': {
+        const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+        return d.getDate() === Math.min(s.getDate(), last); // 31일 → 짧은 달은 말일
+      }
+      case 'weekdays': return t.days.includes(d.getDay());
+      default: return k === t.date;
+    }
+  }
+  const todosOn = k => data.todos.filter(t => occursOn(t, k));
+  const isDone = (t, k) => !!t.done[k];
+  const findTodo = id => data.todos.find(t => t.id === id);
+  const catOf = id => data.categories.find(c => c.id === id) || { id: '', color: '#C9C4BE', name: '' };
+
+  function repeatLabel(t) {
+    const s = parse(t.date);
+    switch (t.repeat) {
+      case 'daily': return '매일';
+      case 'weekly': return `매주 ${DOW[s.getDay()]}요일`;
+      case 'monthly': return `매달 ${s.getDate()}일`;
+      case 'weekdays': return '매주 ' + [0, 1, 2, 3, 4, 5, 6].filter(d => t.days.includes(d)).map(d => DOW[d]).join('·');
+      default: return '';
+    }
+  }
+
+  // ============ 화면: 주 달력 + 할 일 (첫 화면) ============
+  function renderDay() {
+    const sd = parse(selected);
+    const tk = todayKey();
+    const weekStart = addDays(selected, -sd.getDay());
+
+    const week = [0, 1, 2, 3, 4, 5, 6].map(i => {
+      const k = addDays(weekStart, i);
+      const list = todosOn(k);
+      const left = list.filter(t => !isDone(t, k)).length;
+      const st = !list.length ? '' : left ? 'left' : 'all';
+      const cls = ['wd', k === tk && 'today', k === selected && 'selected', i === 0 && 'sun', i === 6 && 'sat'].filter(Boolean).join(' ');
+      return `<button class="${cls}" data-action="selectDay" data-date="${k}">
+        <span class="w">${DOW[i]}</span><span class="n">${parse(k).getDate()}</span><span class="st ${st}"></span></button>`;
+    }).join('');
+
+    const items = todosOn(selected);
+    const doneCount = items.filter(t => isDone(t, selected)).length;
+    const pct = items.length ? Math.round(doneCount / items.length * 100) : 0;
+
+    const sections = data.categories.map(c => {
+      const list = items.filter(t => t.catId === c.id);
+      const rows = list.map(t => {
+        const done = isDone(t, selected);
+        const rep = repeatLabel(t);
+        const memo = t.memo.trim().split('\n')[0];
+        const meta = (rep ? `<span>${icon('repeat', 12, 2)}${rep}</span>` : '')
+          + (memo ? `<span class="memo-prev">${icon('memo', 12, 2)}<em>${esc(memo)}</em></span>` : '');
+        return `<li class="todo${done ? ' done' : ''}">
+          <button class="box" data-action="toggle" data-id="${t.id}" aria-label="완료 표시"><span>${done ? CHECK : ''}</span></button>
+          <button class="todo-main" data-action="openDetail" data-id="${t.id}">
+            <div class="t">${esc(t.text)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}
+          </button>
+        </li>`;
+      }).join('');
+      const doneIn = list.filter(t => isDone(t, selected)).length;
+      return `<section class="cat" style="--c:${c.color}">
+        <div class="cat-head">
+          <button class="cat-name" data-action="editCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>
+          <span class="cat-count">${list.length ? `${doneIn}/${list.length}` : ''}</span>
+          <button class="add-btn" data-action="addTodo" data-id="${c.id}" aria-label="${esc(c.name)}에 할 일 추가">${icon('plus', 18, 2)}</button>
+        </div>
+        ${rows ? `<ul class="todos">${rows}</ul>` : `<div class="empty-cat">할 일이 없어요</div>`}
+      </section>`;
+    }).join('');
+
+    const isToday = selected === tk;
+    return `
+      <div class="bar">
+        <span class="brand">TodoList</span>
+        <div class="actions">
+          ${isToday ? '' : `<button class="pill" data-action="selectDay" data-date="${tk}">오늘</button>`}
+          <button class="icon-btn" data-action="openMonth" aria-label="월 달력 보기">${icon('calendar')}</button>
+        </div>
+      </div>
+      <div class="date-head">
+        <div class="eyebrow">${isToday ? '오늘' : `${sd.getFullYear()}년`}</div>
+        <h1>${sd.getMonth() + 1}월 ${sd.getDate()}일 ${DOW[sd.getDay()]}요일</h1>
+      </div>
+      <div class="week" data-swipe="week">
+        <button class="icon-btn" data-action="moveWeek" data-n="-7" aria-label="이전 주">${icon('left', 18)}</button>
+        <div class="week-days">${week}</div>
+        <button class="icon-btn" data-action="moveWeek" data-n="7" aria-label="다음 주">${icon('right', 18)}</button>
+      </div>
+      <div class="fade">
+        ${items.length ? `<div class="progress"><span>${doneCount}/${items.length}</span><div class="track"><i style="width:${pct}%"></i></div><span>${pct}%</span></div>` : ''}
+        ${sections}
+        <button class="add-cat" data-action="addCat">${icon('plus', 16, 2)}카테고리 추가</button>
+      </div>`;
+  }
+
+  // ============ 화면: 월 달력 ============
+  function renderMonth() {
+    const y = cursor.getFullYear(), m = cursor.getMonth();
+    const first = new Date(y, m, 1);
+    const weeks = Math.ceil((first.getDay() + new Date(y, m + 1, 0).getDate()) / 7);
+    const tk = todayKey();
+
+    let cells = '';
+    for (let i = 0; i < weeks * 7; i++) {
+      const d = new Date(y, m, 1 - first.getDay() + i);
+      const k = keyOf(d);
+      const list = todosOn(k);
+      const dots = list.slice(0, 6).map(t =>
+        `<span class="dot${isDone(t, k) ? ' on' : ''}" style="--c:${catOf(t.catId).color}"></span>`).join('');
+      const more = list.length > 6 ? `<span class="more">+${list.length - 6}</span>` : '';
+      const cls = ['cell', d.getMonth() !== m && 'other', k === tk && 'today', k === selected && 'selected',
+        d.getDay() === 0 && 'sun', d.getDay() === 6 && 'sat'].filter(Boolean).join(' ');
+      cells += `<button class="${cls}" data-action="pickDate" data-date="${k}">
+        <span class="num">${d.getDate()}</span><span class="dots">${dots}${more}</span></button>`;
+    }
+
+    // 이번 달 요약
+    let total = 0, done = 0;
+    for (let day = 1; day <= new Date(y, m + 1, 0).getDate(); day++) {
+      const k = keyOf(new Date(y, m, day));
+      todosOn(k).forEach(t => { total++; if (isDone(t, k)) done++; });
+    }
+
+    return `
+      <div class="month-bar">
+        <button class="icon-btn" data-action="closeMonth" aria-label="돌아가기">${icon('left')}</button>
+        <h1>${y}년 ${m + 1}월</h1>
+        <button class="pill" data-action="thisMonth">오늘</button>
+        <button class="icon-btn" data-action="moveMonth" data-n="-1" aria-label="이전 달">${icon('left', 18)}</button>
+        <button class="icon-btn" data-action="moveMonth" data-n="1" aria-label="다음 달">${icon('right', 18)}</button>
+      </div>
+      <div class="fade">
+        <div class="dow">${DOW.map((n, i) => `<div class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${n}</div>`).join('')}</div>
+        <div class="grid" data-swipe="month">${cells}</div>
+        <div class="month-sum">${total ? `이번 달 할 일 <b>${total}개</b> 중 <b>${done}개</b> 완료` : '날짜를 눌러 그날의 할 일을 확인하세요'}</div>
+      </div>`;
+  }
+
+  function render() {
+    document.getElementById('app').innerHTML = view === 'day' ? renderDay() : renderMonth();
+  }
+
+  // ============ 바텀 시트 ============
+  function renderSheet() {
+    const el = document.getElementById('sheet');
+    const s = sheet;
+
+    if (s.type === 'detail') {
+      const t = findTodo(s.id);
+      const c = catOf(t.catId);
+      const done = isDone(t, selected);
+      const rep = repeatLabel(t);
+      el.innerHTML = `
+        <div class="grab"></div>
+        <div class="detail-meta">
+          <span class="tag" style="--c:${c.color}"><i></i>${esc(c.name)}</span>
+          ${rep ? `<span class="tag plain">${icon('repeat', 12, 2)}${rep}</span>` : ''}
+        </div>
+        <div class="detail-title${done ? ' done' : ''}" style="--c:${c.color}">
+          <button class="box${done ? ' on' : ''}" data-action="detailToggle" aria-label="완료 표시"><span>${done ? CHECK : ''}</span></button>
+          <h3>${esc(t.text)}</h3>
+        </div>
+        <div class="label">메모</div>
+        <textarea id="memo" placeholder="메모를 남겨 보세요">${esc(t.memo)}</textarea>
+        <div class="hint">${t.repeat !== 'none' ? '반복되는 모든 날에 같은 메모가 보여요 · ' : ''}자동으로 저장돼요</div>
+        <div class="sheet-actions">
+          <button class="btn ghost" data-action="editFromDetail">${icon('pencil', 18)}수정</button>
+          <button class="btn ghost danger" data-action="deleteTodo">${icon('trash', 18)}삭제</button>
+          <span class="spacer"></span>
+          <button class="btn primary" data-action="closeSheet">닫기</button>
+        </div>`;
+      autosize(document.getElementById('memo'));
+      return;
+    }
+
+    if (s.type === 'todo') {
+      const sd = parse(s.date);
+      let hint = `${sd.getMonth() + 1}월 ${sd.getDate()}일`;
+      if (s.repeat !== 'none') hint += `부터 ${repeatLabel({ ...s, days: [...s.days] }) || '요일을 선택하세요'}`;
+      el.innerHTML = `
+        <div class="grab"></div>
+        <h3>${s.id ? '할 일 수정' : '새 할 일'}</h3>
+        <input type="text" id="sheetText" placeholder="할 일을 입력하세요" value="${esc(s.text)}" autocomplete="off" enterkeyhint="done">
+        <div class="label">카테고리</div>
+        <div class="chips">${data.categories.map(c =>
+          `<button class="chip${c.id === s.catId ? ' on' : ''}" style="--c:${c.color}" data-action="sheetCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>`).join('')}</div>
+        <div class="label">반복</div>
+        <div class="chips">${REPEATS.map(([v, n]) =>
+          `<button class="chip${v === s.repeat ? ' on' : ''}" data-action="sheetRepeat" data-v="${v}">${n}</button>`).join('')}</div>
+        ${s.repeat === 'weekdays' ? `<div class="days">${[0, 1, 2, 3, 4, 5, 6].map(d =>
+          `<button class="daybtn${s.days.has(d) ? ' on' : ''}${d === 0 ? ' sun' : d === 6 ? ' sat' : ''}" data-action="sheetDay" data-v="${d}">${DOW[d]}</button>`).join('')}</div>` : ''}
+        <div class="hint">${hint}</div>
+        <div class="sheet-actions">
+          <span class="spacer"></span>
+          <button class="btn" data-action="closeSheet">취소</button>
+          <button class="btn primary" data-action="saveSheet">저장</button>
+        </div>`;
+      return;
+    }
+
+    // 카테고리
+    el.innerHTML = `
+      <div class="grab"></div>
+      <h3>${s.id ? '카테고리 수정' : '새 카테고리'}</h3>
+      <input type="text" id="sheetText" placeholder="예: 운동, 공부, 독서" value="${esc(s.text)}" autocomplete="off" enterkeyhint="done">
+      <div class="label">색상</div>
+      <div class="swatches">${COLORS.map(c =>
+        `<button class="swatch${c === s.color ? ' on' : ''}" style="--c:${c}" data-action="sheetColor" data-v="${c}" aria-label="색상 ${c}"></button>`).join('')}</div>
+      <div class="sheet-actions">
+        ${s.id && data.categories.length > 1 ? `<button class="btn ghost danger" data-action="deleteCat">${icon('trash', 18)}삭제</button>` : ''}
+        <span class="spacer"></span>
+        <button class="btn" data-action="closeSheet">취소</button>
+        <button class="btn primary" data-action="saveSheet">저장</button>
+      </div>`;
+  }
+
+  function autosize(ta) {
+    ta.style.height = 'auto';
+    ta.style.height = Math.min(ta.scrollHeight + 2, window.innerHeight * 0.45) + 'px';
+  }
+
+  function openSheet(s, focus = true) {
+    sheet = s;
+    renderSheet();
+    document.getElementById('overlay').classList.add('show');
+    document.getElementById('sheet').scrollTop = 0;
+    const input = document.getElementById('sheetText');
+    if (focus && input) { input.focus(); input.setSelectionRange(input.value.length, input.value.length); }
+  }
+  function closeSheet() {
+    sheet = null;
+    document.getElementById('overlay').classList.remove('show');
+    render(); // 메모 미리보기 등 목록 갱신
+  }
+  function syncText() {
+    const i = document.getElementById('sheetText');
+    if (i && sheet) sheet.text = i.value;
+  }
+  function rerenderSheet() { syncText(); renderSheet(); }
+
+  function todoForm(t) {
+    return {
+      type: 'todo', id: t.id, text: t.text, catId: t.catId, date: t.date, repeat: t.repeat,
+      days: new Set(t.repeat === 'weekdays' ? t.days : [parse(t.date).getDay()]),
+    };
+  }
+
+  function saveSheet() {
+    syncText();
+    const text = sheet.text.trim();
+    if (!text) return document.getElementById('sheetText').focus();
+
+    if (sheet.type === 'todo') {
+      if (sheet.repeat === 'weekdays' && !sheet.days.size) { alert('반복할 요일을 하나 이상 선택해 주세요.'); return; }
+      const fields = { text, catId: sheet.catId, repeat: sheet.repeat, days: sheet.repeat === 'weekdays' ? [...sheet.days] : [] };
+      if (sheet.id) {
+        Object.assign(findTodo(sheet.id), fields);
+        save();
+        return openSheet({ type: 'detail', id: sheet.id }, false); // 수정 후 상세로 돌아감
+      }
+      data.todos.push({ id: uid(), date: sheet.date, done: {}, memo: '', ...fields });
+    } else {
+      if (sheet.id) Object.assign(data.categories.find(c => c.id === sheet.id), { name: text, color: sheet.color });
+      else data.categories.push({ id: uid(), name: text, color: sheet.color });
+    }
+    save(); closeSheet();
+  }
+
+  // ============ 이벤트 ============
+  document.addEventListener('click', e => {
+    if (e.target.id === 'overlay') return closeSheet();
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+    const { action, id, date, v, n } = el.dataset;
+
+    switch (action) {
+      // 주 달력 + 할 일
+      case 'selectDay': selected = date; break;
+      case 'moveWeek': selected = addDays(selected, Number(n)); break;
+      case 'openMonth': cursor = monthOf(selected); view = 'month'; window.scrollTo(0, 0); break;
+      case 'toggle': {
+        const t = findTodo(id);
+        if (t.done[selected]) delete t.done[selected]; else t.done[selected] = true;
+        save(); break;
+      }
+      case 'openDetail': return openSheet({ type: 'detail', id }, false);
+      case 'addTodo':
+        return openSheet({ type: 'todo', id: null, text: '', catId: id, date: selected, repeat: 'none', days: new Set([parse(selected).getDay()]) });
+      case 'addCat': return openSheet({ type: 'cat', id: null, text: '', color: COLORS[data.categories.length % COLORS.length] });
+      case 'editCat': { const c = catOf(id); return openSheet({ type: 'cat', id: c.id, text: c.name, color: c.color }); }
+
+      // 월 달력
+      case 'closeMonth': view = 'day'; break;
+      case 'moveMonth': cursor = new Date(cursor.getFullYear(), cursor.getMonth() + Number(n), 1); break;
+      case 'thisMonth': selected = todayKey(); cursor = monthOf(selected); break;
+      case 'pickDate': selected = date; view = 'day'; window.scrollTo(0, 0); break;
+
+      // 상세(메모) 시트
+      case 'detailToggle': {
+        const t = findTodo(sheet.id);
+        if (t.done[selected]) delete t.done[selected]; else t.done[selected] = true;
+        save();
+        const memo = document.getElementById('memo').value; // 쓰던 메모 유지
+        renderSheet();
+        document.getElementById('memo').value = memo;
+        render();
+        return;
+      }
+      case 'editFromDetail': return openSheet(todoForm(findTodo(sheet.id)));
+      case 'deleteTodo': {
+        const t = findTodo(sheet.id);
+        if (!confirm(t.repeat !== 'none' ? '반복되는 할 일 전체가 삭제됩니다. 삭제할까요?' : '이 할 일을 삭제할까요?')) return;
+        data.todos = data.todos.filter(x => x.id !== t.id);
+        save(); return closeSheet();
+      }
+
+      // 추가/수정 시트
+      case 'sheetCat': sheet.catId = id; return rerenderSheet();
+      case 'sheetRepeat': sheet.repeat = v; return rerenderSheet();
+      case 'sheetDay': { const d = Number(v); sheet.days.has(d) ? sheet.days.delete(d) : sheet.days.add(d); return rerenderSheet(); }
+      case 'sheetColor': sheet.color = v; return rerenderSheet();
+      case 'saveSheet': return saveSheet();
+      case 'closeSheet':
+        // 수정 화면에서 취소하면 상세로 돌아감
+        if (sheet && sheet.type === 'todo' && sheet.id) return openSheet({ type: 'detail', id: sheet.id }, false);
+        return closeSheet();
+      case 'deleteCat': {
+        const c = catOf(sheet.id);
+        const cnt = data.todos.filter(t => t.catId === c.id).length;
+        if (!confirm(`'${c.name}' 카테고리${cnt ? `와 할 일 ${cnt}개` : ''}를 삭제할까요?`)) return;
+        data.categories = data.categories.filter(x => x.id !== c.id);
+        data.todos = data.todos.filter(t => t.catId !== c.id);
+        save(); return closeSheet();
+      }
+      default: return;
+    }
+    render();
+  });
+
+  // 메모 자동 저장
+  document.addEventListener('input', e => {
+    if (e.target.id !== 'memo' || !sheet) return;
+    findTodo(sheet.id).memo = e.target.value;
+    save();
+    autosize(e.target);
+  });
+
+  document.addEventListener('keydown', e => {
+    if (!sheet) return;
+    if (e.key === 'Escape') closeSheet();
+    if (e.key === 'Enter' && e.target.id === 'sheetText' && !e.isComposing) { e.preventDefault(); saveSheet(); }
+  });
+
+  // 좌우로 밀어서 주/달 넘기기
+  let touchX = null, touchY = null, swipeEl = null;
+  document.addEventListener('touchstart', e => {
+    swipeEl = e.target.closest('[data-swipe]');
+    if (!swipeEl) return;
+    touchX = e.touches[0].clientX; touchY = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!swipeEl || touchX === null) return;
+    const dx = e.changedTouches[0].clientX - touchX, dy = e.changedTouches[0].clientY - touchY;
+    const kind = swipeEl.dataset.swipe;
+    touchX = null; swipeEl = null;
+    if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
+    const dir = dx < 0 ? 1 : -1;
+    if (kind === 'week') selected = addDays(selected, dir * 7);
+    else cursor = new Date(cursor.getFullYear(), cursor.getMonth() + dir, 1);
+    render();
+  });
+
+  // 자정이 지나면 '오늘' 표시 갱신
+  let lastDay = todayKey();
+  setInterval(() => { if (todayKey() !== lastDay) { lastDay = todayKey(); if (!sheet) render(); } }, 60 * 1000);
+
+  render();
+</script>
+</body>
+</html>
