@@ -166,6 +166,14 @@
   .month-handle, .week-handle { display: none; height: 30px; align-items: center; justify-content: center; touch-action: none; cursor: grab; }
   .month-handle span, .week-handle span { width: 40px; height: 5px; border-radius: 999px; background: #dcdad6; }
   .week-handle { height: 22px; margin-bottom: -8px; }
+  /* 첫 화면에서 한 달로 펼친 달력 */
+  .week.expanded { align-items: flex-start; }
+  .week.expanded .icon-btn { margin-top: 26px; }
+  .week-month { flex: 1; min-width: 0; animation: fade .2s ease; }
+  .mini-title { text-align: center; font-size: 14px; font-weight: 700; margin: 4px 0 8px; }
+  .week-month .cell { min-height: 50px; }
+  .week-month .cell .num { width: 30px; height: 30px; }
+  .week-fold { margin-top: 4px; }
   @media (pointer: coarse) {
     .month-fold { display: none !important; }
     .month-handle, .week-handle { display: flex; }
@@ -582,6 +590,30 @@
   let chipsFolded = getLS(CHIPFOLD) === '1';
   const MONTHFOLD = 'todolist.monthFolded';
   let monthFolded = getLS(MONTHFOLD) === '1';
+  let weekExpanded = false; // 첫 화면의 주 달력을 한 달로 펼쳤는지
+
+  // 한 달 날짜 칸 (첫 화면에서 펼친 달력용)
+  function monthCells(first, action) {
+    const y = first.getFullYear(), m = first.getMonth();
+    const start = new Date(y, m, 1 - new Date(y, m, 1).getDay());
+    const weeks = Math.ceil((new Date(y, m, 1).getDay() + new Date(y, m + 1, 0).getDate()) / 7);
+    const tk = todayKey();
+    let html = '';
+    for (let i = 0; i < weeks * 7; i++) {
+      const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+      const k = keyOf(d);
+      const cls = ['cell', d.getMonth() !== m && 'other', k === tk && 'today', k === selected && 'selected',
+        d.getDay() === 0 && 'sun', d.getDay() === 6 && 'sat'].filter(Boolean).join(' ');
+      html += `<button class="${cls}" data-action="${action}" data-date="${k}">
+        <span class="num">${d.getDate()}</span><span class="dots">${cellMarks(todosOn(k), k)}</span></button>`;
+    }
+    return html;
+  }
+  function setWeekExpanded(v) {
+    weekExpanded = v;
+    if (v) cursor = monthOf(selected);
+    render();
+  }
 
   // 월 달력 앞뒤로 넘기기: 펼쳐 있으면 한 달씩, 접혀 있으면 한 주씩
   function shiftMonthView(dir) {
@@ -646,12 +678,25 @@
         <div class="eyebrow">${isToday ? '오늘' : `${sd.getFullYear()}년`}</div>
         <h1>${sd.getMonth() + 1}월 ${sd.getDate()}일 ${DOW[sd.getDay()]}요일</h1>
       </div>
+      ${weekExpanded ? `
+      <div class="week expanded" data-swipe="dayMonth">
+        <button class="icon-btn" data-action="dayMonthMove" data-n="-1" aria-label="이전 달">${icon('left', 18)}</button>
+        <div class="week-month">
+          <div class="mini-title">${cursor.getFullYear()}년 ${cursor.getMonth() + 1}월</div>
+          <div class="dow">${DOW.map((n, i) => `<div class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${n}</div>`).join('')}</div>
+          <div class="grid">${monthCells(cursor, 'selectDay')}</div>
+        </div>
+        <button class="icon-btn" data-action="dayMonthMove" data-n="1" aria-label="다음 달">${icon('right', 18)}</button>
+      </div>` : `
       <div class="week" data-swipe="week">
         <button class="icon-btn" data-action="moveWeek" data-n="-7" aria-label="이전 주">${icon('left', 18)}</button>
         <div class="week-days">${week}</div>
         <button class="icon-btn" data-action="moveWeek" data-n="7" aria-label="다음 주">${icon('right', 18)}</button>
-      </div>
-      <div class="week-handle" aria-label="아래로 밀면 월 달력"><span></span></div>
+      </div>`}
+      <div class="week-handle" aria-label="${weekExpanded ? '위로 밀면 한 주로 접기' : '아래로 밀면 한 달 펼치기'}"><span></span></div>
+      <button class="month-fold week-fold" data-action="toggleWeekExpand">
+        <span class="${weekExpanded ? 'up' : ''}">${icon('down', 16, 2)}</span>${weekExpanded ? '한 주로 접기' : '한 달 펼치기'}
+      </button>
       ${filters}
       <div class="fade">
         ${items.length ? `<div class="progress"><span>${doneCount}/${items.length}</span><div class="track"><i style="width:${pct}%"></i></div><span>${pct}%</span></div>` : ''}
@@ -1052,7 +1097,12 @@
 
     switch (action) {
       // 주 달력 + 할 일
-      case 'selectDay': selected = date; break;
+      case 'selectDay':
+        selected = date;
+        if (weekExpanded && monthOf(date).getTime() !== cursor.getTime()) cursor = monthOf(date);
+        break;
+      case 'toggleWeekExpand': return setWeekExpanded(!weekExpanded);
+      case 'dayMonthMove': cursor = new Date(cursor.getFullYear(), cursor.getMonth() + Number(n), 1); break;
       case 'moveWeek': selected = addDays(selected, Number(n)); break;
       case 'openMonth': cursor = monthOf(selected); view = 'month'; window.scrollTo(0, 0); break;
       case 'toggle': {
@@ -1363,7 +1413,12 @@
     const dy = e.changedTouches[0].clientY - handleY;
     const kind = handleKind;
     handleY = null; handleKind = null;
-    if (kind === 'week') { if (dy > -25) openMonthFull(); return; } // 아래로 밀거나 톡 → 월 달력
+    if (kind === 'week') { // 첫 화면: 아래로 밀면 한 달 펼치기, 위로 밀면 한 주로 접기, 톡 누르면 전환
+      if (dy > 25) setWeekExpanded(true);
+      else if (dy < -25) setWeekExpanded(false);
+      else setWeekExpanded(!weekExpanded);
+      return;
+    }
     if (dy < -25) {
       if (!monthFolded) setMonthFolded(true);
       else { view = 'day'; render(); } // 접힌 상태에서 한 번 더 위로 밀면 첫 화면으로
@@ -1385,10 +1440,14 @@
     const kind = swipeEl.dataset.swipe;
     touchX = null; swipeEl = null;
     // 주 달력을 손가락으로 아래로 스윽 → 월 달력
-    if (kind === 'week' && dy > 50 && Math.abs(dy) > Math.abs(dx) * 1.5) return openMonthFull();
+    const vertical = Math.abs(dy) > 50 && Math.abs(dy) > Math.abs(dx) * 1.5;
+    // 첫 화면 주 달력을 아래로 스윽 → 그 자리에서 한 달로 펼치기 / 펼친 달력을 위로 스윽 → 한 주로 접기
+    if (kind === 'week' && vertical && dy > 0) return setWeekExpanded(true);
+    if (kind === 'dayMonth' && vertical && dy < 0) return setWeekExpanded(false);
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
     const dir = dx < 0 ? 1 : -1;
     if (kind === 'week') selected = addDays(selected, dir * 7);
+    else if (kind === 'dayMonth') cursor = new Date(cursor.getFullYear(), cursor.getMonth() + dir, 1);
     else shiftMonthView(dir);
     render();
   });
