@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>TodoList</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #ffffff;
@@ -22,7 +25,7 @@
   body {
     min-height: 100vh; min-height: 100dvh;
     background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", "Segoe UI", sans-serif;
+    font-family: "Gowun Dodum", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; padding: 0; }
@@ -78,6 +81,9 @@
   }
   .cat-name i { width: 10px; height: 10px; border-radius: 50%; background: var(--c); }
   .cat-count { font-size: 12px; font-weight: 600; color: var(--muted); margin-right: auto; }
+  .more-btn {
+    width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; color: var(--muted);
+  }
   .add-btn {
     width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
     color: var(--sub); background: color-mix(in srgb, var(--c) 28%, #fff);
@@ -107,10 +113,26 @@
   .meta .memo-prev em { font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .empty-cat { font-size: 13px; color: var(--muted); padding: 6px 0 4px 18px; }
 
-  .add-cat {
-    display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%;
-    margin-top: 32px; height: 48px; border-radius: 14px; background: var(--soft);
-    font-size: 14px; font-weight: 600; color: var(--sub);
+  .empty-all { margin-top: 40px; text-align: center; font-size: 14px; color: var(--muted); }
+
+  /* ---------- 카테고리 필터 ---------- */
+  .filters { display: flex; align-items: center; gap: 8px; margin-top: 14px; }
+  .filter-scroll {
+    flex: 1; min-width: 0; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+    padding: 2px 0;
+  }
+  .filter-scroll::-webkit-scrollbar { display: none; }
+  .fchip {
+    flex: none; height: 34px; padding: 0 14px; border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 7px;
+    background: var(--soft); color: var(--sub); font-size: 14px; font-weight: 600; white-space: nowrap;
+  }
+  .fchip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
+  .fchip.on { background: var(--text); color: #fff; }
+  .fadd {
+    flex: none; width: 34px; height: 34px; border-radius: 50%;
+    display: grid; place-items: center; color: var(--sub);
+    border: 1.5px dashed #d4d2ce;
   }
 
   /* ---------- 월 달력 ---------- */
@@ -222,6 +244,7 @@
     pencil: '<path d="M4 20h4L19.5 8.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="M14.5 7.5l2 2"/>',
     trash: '<path d="M4 7h16M10 11v6M14 11v6M9 7V4.5h6V7M6 7l1 13h10l1-13"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+    more: '<path d="M6 12h.01M12 12h.01M18 12h.01"/>',
   };
   const icon = (name, size = 22, sw = 1.7) =>
     `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PATHS[name]}</svg>`;
@@ -243,6 +266,7 @@
   let selected = todayKey();
   let cursor = monthOf(selected);
   let sheet = null;
+  let filter = 'all';           // 'all' 또는 카테고리 id
 
   function load() {
     try {
@@ -317,11 +341,23 @@
         <span class="w">${DOW[i]}</span><span class="n">${parse(k).getDate()}</span><span class="st ${st}"></span></button>`;
     }).join('');
 
-    const items = todosOn(selected);
+    // 선택한 카테고리만 보여 주기
+    if (filter !== 'all' && !data.categories.some(c => c.id === filter)) filter = 'all';
+    const visibleCats = filter === 'all' ? data.categories : data.categories.filter(c => c.id === filter);
+    const items = todosOn(selected).filter(t => visibleCats.some(c => c.id === t.catId));
     const doneCount = items.filter(t => isDone(t, selected)).length;
     const pct = items.length ? Math.round(doneCount / items.length * 100) : 0;
 
-    const sections = data.categories.map(c => {
+    const filters = `
+      <div class="filters">
+        <div class="filter-scroll">
+          <button class="fchip${filter === 'all' ? ' on' : ''}" data-action="filter" data-id="all">전체</button>
+          ${data.categories.map(c => `<button class="fchip${filter === c.id ? ' on' : ''}" style="--c:${c.color}" data-action="filter" data-id="${c.id}"><i></i>${esc(c.name)}</button>`).join('')}
+        </div>
+        <button class="fadd" data-action="addCat" aria-label="카테고리 추가">${icon('plus', 18, 2)}</button>
+      </div>`;
+
+    const sections = visibleCats.map(c => {
       const list = items.filter(t => t.catId === c.id);
       const rows = list.map(t => {
         const done = isDone(t, selected);
@@ -341,6 +377,7 @@
         <div class="cat-head">
           <button class="cat-name" data-action="editCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>
           <span class="cat-count">${list.length ? `${doneIn}/${list.length}` : ''}</span>
+          <button class="more-btn" data-action="editCat" data-id="${c.id}" aria-label="${esc(c.name)} 편집·삭제">${icon('more', 20, 2)}</button>
           <button class="add-btn" data-action="addTodo" data-id="${c.id}" aria-label="${esc(c.name)}에 할 일 추가">${icon('plus', 18, 2)}</button>
         </div>
         ${rows ? `<ul class="todos">${rows}</ul>` : `<div class="empty-cat">할 일이 없어요</div>`}
@@ -365,10 +402,10 @@
         <div class="week-days">${week}</div>
         <button class="icon-btn" data-action="moveWeek" data-n="7" aria-label="다음 주">${icon('right', 18)}</button>
       </div>
+      ${filters}
       <div class="fade">
         ${items.length ? `<div class="progress"><span>${doneCount}/${items.length}</span><div class="track"><i style="width:${pct}%"></i></div><span>${pct}%</span></div>` : ''}
-        ${sections}
-        <button class="add-cat" data-action="addCat">${icon('plus', 16, 2)}카테고리 추가</button>
+        ${sections || '<div class="empty-all">오른쪽 + 를 눌러 카테고리를 만들어 보세요</div>'}
       </div>`;
   }
 
@@ -480,13 +517,13 @@
     // 카테고리
     el.innerHTML = `
       <div class="grab"></div>
-      <h3>${s.id ? '카테고리 수정' : '새 카테고리'}</h3>
+      <h3>${s.id ? '카테고리 편집' : '새 카테고리'}</h3>
       <input type="text" id="sheetText" placeholder="예: 운동, 공부, 독서" value="${esc(s.text)}" autocomplete="off" enterkeyhint="done">
       <div class="label">색상</div>
       <div class="swatches">${COLORS.map(c =>
         `<button class="swatch${c === s.color ? ' on' : ''}" style="--c:${c}" data-action="sheetColor" data-v="${c}" aria-label="색상 ${c}"></button>`).join('')}</div>
       <div class="sheet-actions">
-        ${s.id && data.categories.length > 1 ? `<button class="btn ghost danger" data-action="deleteCat">${icon('trash', 18)}삭제</button>` : ''}
+        ${s.id ? `<button class="btn ghost danger" data-action="deleteCat">${icon('trash', 18)}삭제</button>` : ''}
         <span class="spacer"></span>
         <button class="btn" data-action="closeSheet">취소</button>
         <button class="btn primary" data-action="saveSheet">저장</button>
@@ -562,6 +599,7 @@
         if (t.done[selected]) delete t.done[selected]; else t.done[selected] = true;
         save(); break;
       }
+      case 'filter': filter = id; break;
       case 'openDetail': return openSheet({ type: 'detail', id }, false);
       case 'addTodo':
         return openSheet({ type: 'todo', id: null, text: '', catId: id, date: selected, repeat: 'none', days: new Set([parse(selected).getDay()]) });
