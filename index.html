@@ -188,7 +188,7 @@
     padding: 13px 14px; border-radius: 12px; border: 1.5px solid transparent; background: var(--soft); outline: none;
   }
   .sheet input[type=text]:focus, .sheet textarea:focus { border-color: #dcdad6; background: #fff; }
-  .sheet textarea { resize: none; min-height: 120px; line-height: 1.55; }
+  .sheet textarea { resize: none; min-height: 76px; line-height: 1.55; }
   .label { margin: 18px 0 8px; font-size: 12px; font-weight: 700; color: var(--muted); }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
@@ -202,6 +202,12 @@
   .daybtn.sun { color: var(--sun); }
   .daybtn.sat { color: var(--sat); }
   .daybtn.on { background: var(--text); color: #fff; }
+  /* 날짜 고르기 칩: 투명한 날짜 입력칸을 칩 위에 덮어서 누르면 달력이 열림 */
+  .date-chip { position: relative; cursor: pointer; }
+  .date-chip input {
+    position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
+    font-size: 16px; border: 0; padding: 0;
+  }
   .hint { margin-top: 10px; font-size: 12px; color: var(--muted); }
   .swatches { display: flex; flex-wrap: wrap; gap: 12px; }
   .swatch { width: 36px; height: 36px; border-radius: 50%; background: var(--c); display: grid; place-items: center; }
@@ -253,6 +259,22 @@
   }
   .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
   .toast button { color: #F5DC8E; font-weight: 700; }
+
+  /* 꾹 눌러서 순서 바꾸기 */
+  .todo, .cat-head { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .dragging {
+    position: relative; z-index: 5; background: #fff; border-radius: 14px;
+    box-shadow: 0 10px 28px rgba(30, 30, 34, .18);
+  }
+  .todo.dragging { outline: 8px solid #fff; } /* 들어 올린 할 일 둘레에 여백처럼 보이게 */
+  .todo.dragging .todo-main { border-bottom-color: transparent; }
+  body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
+
+  /* 팝업 제목 줄: 오른쪽 위 삭제·닫기 버튼 */
+  .sheet-head { display: flex; align-items: center; gap: 2px; margin: -6px -8px 12px 0; }
+  .sheet-head h3 { margin: 0 auto 0 0; }
+  .head-btn { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--sub); }
+  .head-btn.danger { color: var(--sun); }
 
   /* 상세(메모) 시트 */
   .detail-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--sub); }
@@ -430,6 +452,7 @@
   // ============ 반복 로직 ============
   function occursOn(t, k) {
     if (k < t.date) return false;
+    if (t.until && k > t.until) return false; // 반복 끝나는 날 이후로는 안 나타남
     const d = parse(k), s = parse(t.date);
     switch (t.repeat) {
       case 'daily': return true;
@@ -448,6 +471,13 @@
   const catOf = id => data.categories.find(c => c.id === id) || { id: '', color: '#C9C4BE', name: '' };
 
   function repeatLabel(t) {
+    const base = repeatBase(t);
+    if (!base || t.repeat === 'none' || !t.until) return base;
+    const u = parse(t.until);
+    return `${base} · ${u.getMonth() + 1}월 ${u.getDate()}일까지`;
+  }
+
+  function repeatBase(t) {
     const s = parse(t.date);
     switch (t.repeat) {
       case 'daily': return '매일';
@@ -498,7 +528,7 @@
         const memo = t.memo.trim().split('\n')[0];
         const meta = (rep ? `<span>${icon('repeat', 12, 2)}${rep}</span>` : '')
           + (memo ? `<span class="memo-prev">${icon('memo', 12, 2)}<em>${esc(memo)}</em></span>` : '');
-        return `<li class="todo${done ? ' done' : ''}">
+        return `<li class="todo${done ? ' done' : ''}" data-id="${t.id}">
           <button class="box" data-action="toggle" data-id="${t.id}" aria-label="완료 표시"><span>${done ? CHECK : ''}</span></button>
           <button class="todo-main" data-action="openDetail" data-id="${t.id}">
             <div class="t">${esc(t.text)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}
@@ -506,7 +536,7 @@
         </li>`;
       }).join('');
       const doneIn = list.filter(t => isDone(t, selected)).length;
-      return `<section class="cat" style="--c:${c.color}">
+      return `<section class="cat" style="--c:${c.color}" data-cat="${c.id}">
         <div class="cat-head">
           <button class="cat-name" data-action="editCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>
           <span class="cat-count">${list.length ? `${doneIn}/${list.length}` : ''}</span>
@@ -635,42 +665,24 @@
       return;
     }
 
-    if (s.type === 'detail') {
-      const t = findTodo(s.id);
-      const c = catOf(t.catId);
-      const done = isDone(t, selected);
-      const rep = repeatLabel(t);
-      el.innerHTML = `
-        <div class="grab"></div>
-        <div class="detail-meta">
-          <span class="tag" style="--c:${c.color}"><i></i>${esc(c.name)}</span>
-          ${rep ? `<span class="tag plain">${icon('repeat', 12, 2)}${rep}</span>` : ''}
-        </div>
-        <div class="detail-title${done ? ' done' : ''}" style="--c:${c.color}">
-          <button class="box${done ? ' on' : ''}" data-action="detailToggle" aria-label="완료 표시"><span>${done ? CHECK : ''}</span></button>
-          <h3>${esc(t.text)}</h3>
-        </div>
-        <div class="label">메모</div>
-        <textarea id="memo" placeholder="메모를 남겨 보세요">${esc(t.memo)}</textarea>
-        <div class="hint">${t.repeat !== 'none' ? '반복되는 모든 날에 같은 메모가 보여요 · ' : ''}자동으로 저장돼요</div>
-        <div class="sheet-actions">
-          <button class="btn ghost" data-action="editFromDetail">${icon('pencil', 18)}수정</button>
-          <button class="btn ghost danger" data-action="deleteTodo">${icon('trash', 18)}삭제</button>
-          <span class="spacer"></span>
-          <button class="btn primary" data-action="closeSheet">닫기</button>
-        </div>`;
-      autosize(document.getElementById('memo'));
-      return;
-    }
-
     if (s.type === 'todo') {
       const sd = parse(s.date);
+      const customUntil = s.until && s.until !== addDays(s.date, 6) && s.until !== addDays(s.date, 29);
       let hint = `${sd.getMonth() + 1}월 ${sd.getDate()}일`;
-      if (s.repeat !== 'none') hint += `부터 ${repeatLabel({ ...s, days: [...s.days] }) || '요일을 선택하세요'}`;
+      if (s.repeat !== 'none') {
+        const base = repeatBase({ ...s, days: [...s.days] });
+        hint += `부터 ${base || '요일을 선택하세요'}`;
+        if (base && s.until) { const u = parse(s.until); hint += ` · ${u.getMonth() + 1}월 ${u.getDate()}일까지`; }
+      }
       el.innerHTML = `
-        <div class="grab"></div>
-        <h3>${s.id ? '할 일 수정' : '새 할 일'}</h3>
+        <div class="sheet-head">
+          <h3>${s.id ? '할 일' : '새 할 일'}</h3>
+          ${s.id ? `<button class="head-btn danger" data-action="deleteTodo" aria-label="삭제">${icon('trash', 20)}</button>` : ''}
+          <button class="head-btn" data-action="closeSheet" aria-label="닫기">${icon('close', 20)}</button>
+        </div>
         <input type="text" id="sheetText" placeholder="할 일을 입력하세요" value="${esc(s.text)}" autocomplete="off" enterkeyhint="done">
+        <div class="label">메모</div>
+        <textarea id="memo" placeholder="메모를 남겨 보세요 (선택)">${esc(s.memo || '')}</textarea>
         <div class="label">카테고리</div>
         <div class="chips">${data.categories.map(c =>
           `<button class="chip${c.id === s.catId ? ' on' : ''}" style="--c:${c.color}" data-action="sheetCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>`).join('')}</div>
@@ -679,12 +691,24 @@
           `<button class="chip${v === s.repeat ? ' on' : ''}" data-action="sheetRepeat" data-v="${v}">${n}</button>`).join('')}</div>
         ${s.repeat === 'weekdays' ? `<div class="days">${[0, 1, 2, 3, 4, 5, 6].map(d =>
           `<button class="daybtn${s.days.has(d) ? ' on' : ''}${d === 0 ? ' sun' : d === 6 ? ' sat' : ''}" data-action="sheetDay" data-v="${d}">${DOW[d]}</button>`).join('')}</div>` : ''}
-        <div class="hint">${hint}</div>
+        ${s.repeat !== 'none' ? `
+          <div class="label">언제까지</div>
+          <div class="chips">
+            <button class="chip${!s.until ? ' on' : ''}" data-action="sheetUntil" data-v="">계속</button>
+            <button class="chip${s.until === addDays(s.date, 6) ? ' on' : ''}" data-action="sheetUntil" data-v="${addDays(s.date, 6)}">1주</button>
+            <button class="chip${s.until === addDays(s.date, 29) ? ' on' : ''}" data-action="sheetUntil" data-v="${addDays(s.date, 29)}">한 달</button>
+            <label class="chip date-chip${customUntil ? ' on' : ''}">
+              ${icon('calendar', 15, 2)}<span>${customUntil ? `${parse(s.until).getMonth() + 1}월 ${parse(s.until).getDate()}일` : '날짜 고르기'}</span>
+              <input type="date" id="untilDate" min="${s.date}" value="${s.until || ''}">
+            </label>
+          </div>` : ''}
+        <div class="hint">${hint}${s.repeat !== 'none' ? ' · 메모는 반복되는 모든 날에 같이 보여요' : ''}</div>
         <div class="sheet-actions">
           <span class="spacer"></span>
           <button class="btn" data-action="closeSheet">취소</button>
           <button class="btn primary" data-action="saveSheet">저장</button>
         </div>`;
+      autosize(el.querySelector('#memo'));
       return;
     }
 
@@ -743,12 +767,14 @@
   function syncText() {
     const i = document.getElementById('sheetText');
     if (i && sheet) sheet.text = i.value;
+    const m = document.getElementById('memo');
+    if (m && sheet) sheet.memo = m.value;
   }
   function rerenderSheet() { syncText(); renderSheet(); }
 
   function todoForm(t) {
     return {
-      type: 'todo', id: t.id, text: t.text, catId: t.catId, date: t.date, repeat: t.repeat,
+      type: 'todo', id: t.id, text: t.text, memo: t.memo || '', catId: t.catId, date: t.date, repeat: t.repeat, until: t.until || null,
       days: new Set(t.repeat === 'weekdays' ? t.days : [parse(t.date).getDay()]),
     };
   }
@@ -760,13 +786,11 @@
 
     if (sheet.type === 'todo') {
       if (sheet.repeat === 'weekdays' && !sheet.days.size) { alert('반복할 요일을 하나 이상 선택해 주세요.'); return; }
-      const fields = { text, catId: sheet.catId, repeat: sheet.repeat, days: sheet.repeat === 'weekdays' ? [...sheet.days] : [] };
-      if (sheet.id) {
-        Object.assign(findTodo(sheet.id), fields);
-        save();
-        return openSheet({ type: 'detail', id: sheet.id }, false); // 수정 후 상세로 돌아감
-      }
-      data.todos.push({ id: uid(), date: sheet.date, done: {}, memo: '', ...fields });
+      const until = sheet.repeat !== 'none' && sheet.until ? sheet.until : null;
+      if (until && until < sheet.date) { alert('끝나는 날은 시작하는 날 이후로 골라 주세요.'); return; }
+      const fields = { text, memo: sheet.memo || '', catId: sheet.catId, repeat: sheet.repeat, days: sheet.repeat === 'weekdays' ? [...sheet.days] : [], until };
+      if (sheet.id) Object.assign(findTodo(sheet.id), fields);
+      else data.todos.push({ id: uid(), date: sheet.date, done: {}, ...fields });
     } else {
       if (sheet.id) Object.assign(data.categories.find(c => c.id === sheet.id), { name: text, color: sheet.color });
       else data.categories.push({ id: uid(), name: text, color: sheet.color });
@@ -803,9 +827,9 @@
         toast('되돌렸어요');
         break;
       }
-      case 'openDetail': return openSheet({ type: 'detail', id }, false);
+      case 'openDetail': return openSheet(todoForm(findTodo(id)), false); // 할 일을 누르면 수정 + 메모 한 번에
       case 'addTodo':
-        return openSheet({ type: 'todo', id: null, text: '', catId: id, date: selected, repeat: 'none', days: new Set([parse(selected).getDay()]) });
+        return openSheet({ type: 'todo', id: null, text: '', memo: '', catId: id, date: selected, repeat: 'none', until: null, days: new Set([parse(selected).getDay()]) });
       case 'addCat': return openSheet({ type: 'cat', id: null, text: '', color: COLORS[data.categories.length % COLORS.length] });
       case 'editCat': { const c = catOf(id); return openSheet({ type: 'cat', id: c.id, text: c.name, color: c.color }); }
 
@@ -815,18 +839,6 @@
       case 'thisMonth': selected = todayKey(); cursor = monthOf(selected); break;
       case 'pickDate': selected = date; view = 'day'; window.scrollTo(0, 0); break;
 
-      // 상세(메모) 시트
-      case 'detailToggle': {
-        const t = findTodo(sheet.id);
-        if (t.done[selected]) delete t.done[selected]; else t.done[selected] = true;
-        save();
-        const memo = document.getElementById('memo').value; // 쓰던 메모 유지
-        renderSheet();
-        document.getElementById('memo').value = memo;
-        render();
-        return;
-      }
-      case 'editFromDetail': return openSheet(todoForm(findTodo(sheet.id)));
       case 'deleteTodo': {
         const t = findTodo(sheet.id);
         if (!confirm(t.repeat !== 'none' ? '반복되는 할 일 전체가 삭제됩니다. 삭제할까요?' : '이 할 일을 삭제할까요?')) return;
@@ -839,13 +851,11 @@
       // 추가/수정 시트
       case 'sheetCat': sheet.catId = id; return rerenderSheet();
       case 'sheetRepeat': sheet.repeat = v; return rerenderSheet();
+      case 'sheetUntil': sheet.until = v || null; return rerenderSheet();
       case 'sheetDay': { const d = Number(v); sheet.days.has(d) ? sheet.days.delete(d) : sheet.days.add(d); return rerenderSheet(); }
       case 'sheetColor': sheet.color = v; return rerenderSheet();
       case 'saveSheet': return saveSheet();
-      case 'closeSheet':
-        // 수정 화면에서 취소하면 상세로 돌아감
-        if (sheet && sheet.type === 'todo' && sheet.id) return openSheet({ type: 'detail', id: sheet.id }, false);
-        return closeSheet();
+      case 'closeSheet': return closeSheet();
       case 'deleteCat': {
         const c = catOf(sheet.id);
         const cnt = data.todos.filter(t => t.catId === c.id).length;
@@ -867,12 +877,19 @@
     if (f) importBackup(f);
   });
 
-  // 메모 자동 저장
+  // 반복 끝나는 날짜 고르기 (PC 브라우저에서도 칩을 누르면 달력이 열리게)
+  document.addEventListener('click', e => {
+    if (e.target.id === 'untilDate') { try { e.target.showPicker(); } catch {} }
+  });
+  document.addEventListener('change', e => {
+    if (e.target.id !== 'untilDate' || !sheet) return;
+    sheet.until = e.target.value || null;
+    rerenderSheet();
+  });
+
+  // 메모 칸은 글 길이에 맞춰 늘어남 (저장은 '저장' 버튼으로)
   document.addEventListener('input', e => {
-    if (e.target.id !== 'memo' || !sheet) return;
-    findTodo(sheet.id).memo = e.target.value;
-    save();
-    autosize(e.target);
+    if (e.target.id === 'memo') autosize(e.target);
   });
 
   document.addEventListener('keydown', e => {
@@ -880,6 +897,85 @@
     if (e.key === 'Escape') closeSheet();
     if (e.key === 'Enter' && e.target.id === 'sheetText' && !e.isComposing) { e.preventDefault(); saveSheet(); }
   });
+
+  // ============ 꾹 눌러서 순서 바꾸기 ============
+  // 할 일 또는 카테고리 제목을 0.45초 꾹 누르면 들어 올려지고, 위아래로 끌어서 놓으면 순서가 바뀜
+  let press = null, drag = null, suppressClick = false;
+
+  document.addEventListener('pointerdown', e => {
+    if (sheet || drag || e.button > 0) return;
+    if (e.target.closest('.box, .add-btn, .more-btn')) return; // 체크박스·버튼은 제외
+    const item = e.target.closest('.todo') || (e.target.closest('.cat-head') && e.target.closest('.cat'));
+    if (!item) return;
+    press = { item, x: e.clientX, y: e.clientY, lastY: e.clientY, timer: setTimeout(() => startDrag(press && press.lastY), 450) };
+  });
+  document.addEventListener('pointermove', e => {
+    if (drag) return moveDrag(e.clientY);
+    if (press) {
+      press.lastY = e.clientY;
+      // 누르는 동안 손가락이 움직이면 스크롤하려는 것으로 보고 취소
+      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) cancelPress();
+    }
+  });
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
+  // 끄는 동안 화면이 스크롤되지 않게
+  document.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
+  document.addEventListener('contextmenu', e => { if (press || drag) e.preventDefault(); });
+  // 꾹 누른 뒤 손을 떼면 생기는 클릭(수정 창 열기)은 무시
+  document.addEventListener('click', e => {
+    if (suppressClick) { e.stopPropagation(); e.preventDefault(); suppressClick = false; }
+  }, true);
+
+  function cancelPress() { if (press) { clearTimeout(press.timer); press = null; } }
+
+  function startDrag(y) {
+    if (!press) return;
+    const item = press.item;
+    press = null;
+    const kind = item.classList.contains('todo') ? 'todo' : 'cat';
+    const list = item.parentElement;
+    if ([...list.children].filter(el => el.matches(kind === 'todo' ? '.todo' : '.cat')).length < 2) return; // 바꿀 게 없음
+    drag = { item, list, kind, grab: y - item.getBoundingClientRect().top };
+    item.classList.add('dragging');
+    document.body.classList.add('is-dragging');
+    suppressClick = true;
+    try { navigator.vibrate && navigator.vibrate(15); } catch {}
+  }
+
+  function moveDrag(y) {
+    const { item, list, kind } = drag;
+    const sibs = [...list.children].filter(el => el !== item && el.matches(kind === 'todo' ? '.todo' : '.cat'));
+    const before = sibs.find(el => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; });
+    if (before) { if (item.nextElementSibling !== before) list.insertBefore(item, before); }
+    else if (sibs.length && sibs[sibs.length - 1].nextElementSibling !== item) sibs[sibs.length - 1].after(item);
+    item.style.transform = '';
+    const top = item.getBoundingClientRect().top;
+    item.style.transform = `translateY(${y - drag.grab - top}px)`;
+    if (y < 80) window.scrollBy(0, -8); else if (y > innerHeight - 80) window.scrollBy(0, 8);
+  }
+
+  function endDrag() {
+    cancelPress();
+    if (!drag) return;
+    const { item, list, kind } = drag;
+    drag = null;
+    item.classList.remove('dragging');
+    item.style.transform = '';
+    document.body.classList.remove('is-dragging');
+    if (kind === 'todo') reorder(data.todos, [...list.querySelectorAll('.todo')].map(el => el.dataset.id));
+    else reorder(data.categories, [...list.children].filter(el => el.matches('.cat')).map(el => el.dataset.cat));
+    save();
+    render();
+    setTimeout(() => { suppressClick = false; }, 400);
+  }
+
+  // 화면에 보이는 항목들(ids)의 새 순서를, 전체 목록에서 그 항목들이 있던 자리에 그대로 채워 넣음
+  function reorder(arr, ids) {
+    const objs = ids.map(id => arr.find(x => x.id === id)).filter(Boolean);
+    const slots = objs.map(o => arr.indexOf(o)).sort((a, b) => a - b);
+    slots.forEach((slot, i) => { arr[slot] = objs[i]; });
+  }
 
   // 좌우로 밀어서 주/달 넘기기
   let touchX = null, touchY = null, swipeEl = null;
