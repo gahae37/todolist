@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#f4f3f1">
+<meta name="theme-color" content="#ffffff">
 <title>TodoList</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -17,7 +17,7 @@
 <style>
   :root {
     --bg: #ffffff;
-    --page: #f4f3f1;   /* 화면 바탕 (연한 회색) */
+    --page: #ffffff;   /* 화면 바탕 */
     --soft: #f6f5f3;
     --text: #2f2f33;
     --sub: #7a7a80;
@@ -40,7 +40,7 @@
   svg { display: block; }
   .app {
     max-width: 480px; margin: 0 auto;
-    padding: calc(14px + env(safe-area-inset-top)) 20px calc(48px + env(safe-area-inset-bottom));
+    padding: calc(14px + env(safe-area-inset-top)) 20px calc(104px + env(safe-area-inset-bottom)); /* 아래 + 버튼 자리 */
   }
   .fade { animation: fade .2s ease; }
   @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
@@ -53,7 +53,7 @@
     width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text);
   }
   .pill {
-    height: 32px; padding: 0 14px; border-radius: 999px; background: #fff;
+    height: 32px; padding: 0 14px; border-radius: 999px; background: var(--soft);
     font-size: 13px; font-weight: 600; color: var(--sub);
   }
   .date-head { margin: 10px 0 14px; }
@@ -69,23 +69,21 @@
   .wd.sun .w { color: var(--sun); }
   .wd.sat .w { color: var(--sat); }
   .wd .n { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 700; }
-  .wd.today .n { background: #fff; }
+  .wd.today .n { background: var(--soft); }
   .wd.selected .n { background: var(--text); color: #fff; }
   .wd .st { width: 5px; height: 5px; border-radius: 50%; }
   .wd .st.left { background: #dcdad6; }
   .wd .st.all { background: var(--good); }
 
   .progress { display: flex; align-items: center; gap: 10px; margin: 18px 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
-  .track { flex: 1; height: 4px; background: #e4e2de; border-radius: 999px; overflow: hidden; }
+  .track { flex: 1; height: 4px; background: var(--line); border-radius: 999px; overflow: hidden; }
   .track i { display: block; height: 100%; background: var(--good); border-radius: 999px; transition: width .3s; }
 
   /* ---------- 카테고리 & 할 일 ---------- */
   /* 카테고리마다 흰 카드 */
-  .cat {
-    margin-top: 12px; padding: 8px 12px 4px 16px; border-radius: 18px;
-    background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
-  }
-  .progress + .cat, .fade > .cat:first-child { margin-top: 14px; }
+  /* 카테고리 사이에 실선 */
+  .cat { padding: 14px 0 8px; }
+  .cat + .cat { border-top: 1px solid #e9e7e3; }
   .cat-head { display: flex; align-items: center; gap: 6px; }
   .cat-name {
     display: inline-flex; align-items: center; gap: 8px; height: 36px; padding-right: 6px;
@@ -134,7 +132,7 @@
   .fchip {
     flex: none; height: 34px; padding: 0 14px; border-radius: 999px;
     display: inline-flex; align-items: center; gap: 7px;
-    background: #fff; color: var(--sub); font-size: 14px; font-weight: 600; white-space: nowrap;
+    background: var(--soft); color: var(--sub); font-size: 14px; font-weight: 600; white-space: nowrap;
   }
   .fchip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
   .fchip.on { background: var(--text); color: #fff; }
@@ -148,7 +146,7 @@
   .month-bar { display: flex; align-items: center; height: 44px; margin: 0 -12px; }
   .month-bar h1 { margin: 0 auto 0 0; font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
   .dow, .grid { display: grid; grid-template-columns: repeat(7, 1fr); }
-  .month-card { margin-top: 14px; padding: 14px 8px 8px; border-radius: 18px; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
+  .month-card { margin-top: 14px; }
   .dow div { text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); padding-bottom: 6px; }
   .dow .sun, .cell.sun .num { color: var(--sun); }
   .dow .sat, .cell.sat .num { color: var(--sat); }
@@ -162,7 +160,7 @@
   .dot { width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--c) 80%, #555); }
   .dot.on { background: var(--c); border-color: var(--c); }
   .more { font-size: 9px; line-height: 6px; color: var(--muted); }
-  .month-sum { margin-top: 12px; padding: 14px 16px; border-radius: 14px; background: #fff; font-size: 14px; color: var(--sub); }
+  .month-sum { margin-top: 12px; padding: 14px 16px; border-radius: 14px; background: var(--soft); font-size: 14px; color: var(--sub); }
   .month-sum b { color: var(--text); }
 
   /* ---------- 팝업 (화면 가운데) ---------- */
@@ -260,6 +258,50 @@
   .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
   .toast button { color: #F5DC8E; font-weight: 700; }
 
+  /* 접기 */
+  .fold-btn { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; color: var(--muted); }
+  .fold-btn svg { transition: transform .2s; }
+  .fold-btn.folded svg { transform: rotate(-90deg); }
+  .folded-note { display: block; margin-left: 18px; padding: 2px 0 12px; font-size: 13px; color: var(--muted); text-align: left; }
+  .filters.folded .filter-scroll { max-height: 34px; overflow: hidden; }
+  .fold-chips {
+    flex: none; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
+    background: var(--soft); color: var(--sub);
+  }
+  .fold-chips[hidden] { display: none; }
+  .fold-chips svg { transition: transform .2s; }
+  .filters:not(.folded) .fold-chips svg { transform: rotate(180deg); }
+
+  /* 카테고리 없는 할 일 묶음 */
+  .cat.none { padding-top: 6px; }
+  .cat.none .todos { margin-left: 0; }
+
+  /* 할 일 추가 버튼 (오른쪽 아래 둥근 버튼) */
+  .fab {
+    position: fixed; z-index: 8; width: 56px; height: 56px; border-radius: 50%;
+    right: max(20px, calc(50% - 240px + 20px)); bottom: calc(24px + env(safe-area-inset-bottom));
+    display: grid; place-items: center; background: var(--text); color: #fff;
+    box-shadow: 0 8px 20px rgba(30, 30, 34, .25);
+  }
+
+  /* 월 달력 아래: 고른 날짜의 할 일 */
+  .day-panel { margin-top: 22px; }
+  .panel-head { display: flex; align-items: flex-end; justify-content: space-between; margin: 0 4px 2px; }
+  .panel-head h2 { margin: 2px 0 0; font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+  .empty-day { padding: 24px 0; text-align: center; font-size: 14px; color: var(--muted); }
+  .day-panel { border-top: 1px solid #e9e7e3; padding-top: 18px; }
+
+  /* 반복 할 일 삭제 고르기 */
+  .del-desc { margin: -4px 0 14px; font-size: 13px; color: var(--sub); }
+  .del-list { display: flex; flex-direction: column; gap: 8px; }
+  .del-opt { display: flex; flex-direction: column; gap: 3px; padding: 14px 16px; border-radius: 14px; background: var(--soft); text-align: left; }
+  .del-opt b { font-size: 15px; }
+  .del-opt span { font-size: 12px; color: var(--muted); }
+  .del-opt.danger b { color: var(--sun); }
+  .label .opt { font-weight: 500; }
+  .confirm-desc { font-size: 14px; line-height: 1.55; color: var(--sub); }
+  .btn.primary.warn { background: #e06c6c; }
+
   /* 꾹 눌러서 순서 바꾸기 */
   .todo, .cat-head { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
   .dragging {
@@ -322,6 +364,7 @@
     download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
     upload: '<path d="M12 15V4M7 9l5-5 5 5M5 20h14"/>',
     close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    down: '<path d="M6 9l6 6 6-6"/>',
   };
   const icon = (name, size = 22, sw = 1.7) =>
     `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PATHS[name]}</svg>`;
@@ -333,6 +376,7 @@
   const parse = k => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
   const addDays = (k, n) => { const d = parse(k); d.setDate(d.getDate() + n); return keyOf(d); };
   const todayKey = () => keyOf(new Date());
+  const md = k => { const d = parse(k); return `${d.getMonth() + 1}월 ${d.getDate()}일`; };
   const monthOf = k => { const d = parse(k); return new Date(d.getFullYear(), d.getMonth(), 1); };
   const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -423,19 +467,31 @@
 
   async function importBackup(file) {
     let obj;
-    try { obj = JSON.parse(await file.text()); } catch { alert('백업 파일을 읽을 수 없어요.'); return; }
+    try { obj = JSON.parse(await file.text()); } catch { toast('백업 파일을 읽을 수 없어요'); return; }
     const d = obj && obj.data ? obj.data : obj;
-    if (!d || !Array.isArray(d.categories) || !Array.isArray(d.todos)) { alert('TodoList 백업 파일이 아니에요.'); return; }
+    if (!d || !Array.isArray(d.categories) || !Array.isArray(d.todos)) { toast('TodoList 백업 파일이 아니에요'); return; }
     const when = obj.exportedAt ? new Date(obj.exportedAt) : null;
-    const whenText = when ? `${when.getFullYear()}년 ${when.getMonth() + 1}월 ${when.getDate()}일` : '이 파일';
-    if (!confirm(`${whenText} 백업으로 되돌릴까요?\n지금 있는 할 일 ${data.todos.length}개가 백업 내용(할 일 ${d.todos.length}개)으로 바뀌어요.`)) return;
-    const before = JSON.stringify(data);
-    d.todos.forEach(t => { t.memo = t.memo || ''; t.done = t.done || {}; t.days = t.days || []; });
-    data = d;
-    save();
-    filter = 'all';
-    closeSheet();
-    toast('백업을 불러왔어요', before);
+    const whenText = when ? `${when.getFullYear()}년 ${when.getMonth() + 1}월 ${when.getDate()}일` : '이 파일의';
+    askConfirm({
+      title: '백업으로 되돌릴까요?',
+      desc: `${whenText} 백업으로 바꿔요. 지금 있는 할 일 ${data.todos.length}개가 백업 내용(할 일 ${d.todos.length}개)으로 바뀌어요.`,
+      ok: '되돌리기',
+      back: sheet,
+      onOk: () => {
+        const before = JSON.stringify(data);
+        d.todos.forEach(t => { t.memo = t.memo || ''; t.done = t.done || {}; t.days = t.days || []; });
+        data = d;
+        save();
+        filter = 'all';
+        closeSheet();
+        toast('백업을 불러왔어요', before);
+      },
+    });
+  }
+
+  // 브라우저 기본 확인 창(confirm)은 일부 환경에서 아예 안 떠서, 앱 안의 확인 창을 씀
+  function askConfirm({ title, desc, ok = '확인', danger = false, back = null, onOk }) {
+    openSheet({ type: 'confirm', title, desc, ok, danger, back, onOk }, false);
   }
 
   // ============ 알림(토스트) + 되돌리기 ============
@@ -453,6 +509,7 @@
   function occursOn(t, k) {
     if (k < t.date) return false;
     if (t.until && k > t.until) return false; // 반복 끝나는 날 이후로는 안 나타남
+    if (t.skip && t.skip.includes(k)) return false; // '이 날만 삭제'한 날
     const d = parse(k), s = parse(t.date);
     switch (t.repeat) {
       case 'daily': return true;
@@ -488,6 +545,11 @@
     }
   }
 
+  // ============ 접기 상태 (이 기기에 기억) ============
+  const FOLD = 'todolist.folded', CHIPFOLD = 'todolist.chipsFolded';
+  const folded = new Set((() => { try { return JSON.parse(getLS(FOLD)) || []; } catch { return []; } })());
+  let chipsFolded = getLS(CHIPFOLD) === '1';
+
   // ============ 화면: 주 달력 + 할 일 (첫 화면) ============
   function renderDay() {
     const sd = parse(selected);
@@ -507,45 +569,24 @@
     // 선택한 카테고리만 보여 주기
     if (filter !== 'all' && !data.categories.some(c => c.id === filter)) filter = 'all';
     const visibleCats = filter === 'all' ? data.categories : data.categories.filter(c => c.id === filter);
-    const items = todosOn(selected).filter(t => visibleCats.some(c => c.id === t.catId));
+    const items = filter === 'all' ? todosOn(selected) : todosOn(selected).filter(t => t.catId === filter);
     const doneCount = items.filter(t => isDone(t, selected)).length;
     const pct = items.length ? Math.round(doneCount / items.length * 100) : 0;
 
+    // 접혀 있을 때 선택한 카테고리가 가려지지 않도록 앞으로
+    const chipCats = chipsFolded && filter !== 'all'
+      ? [...visibleCats, ...data.categories.filter(c => c.id !== filter)] : data.categories;
     const filters = `
-      <div class="filters">
+      <div class="filters${chipsFolded ? ' folded' : ''}">
         <div class="filter-scroll">
           <button class="fchip${filter === 'all' ? ' on' : ''}" data-action="filter" data-id="all">전체</button>
-          ${data.categories.map(c => `<button class="fchip${filter === c.id ? ' on' : ''}" style="--c:${c.color}" data-action="filter" data-id="${c.id}"><i></i>${esc(c.name)}</button>`).join('')}
+          ${chipCats.map(c => `<button class="fchip${filter === c.id ? ' on' : ''}" style="--c:${c.color}" data-action="filter" data-id="${c.id}"><i></i>${esc(c.name)}</button>`).join('')}
         </div>
+        <button class="fold-chips" data-action="foldChips" hidden aria-label="카테고리 목록 접기·펼치기">${icon('down', 18, 2)}</button>
         <button class="fadd" data-action="addCat" aria-label="카테고리 추가">${icon('plus', 18, 2)}</button>
       </div>`;
 
-    const sections = visibleCats.map(c => {
-      const list = items.filter(t => t.catId === c.id);
-      const rows = list.map(t => {
-        const done = isDone(t, selected);
-        const rep = repeatLabel(t);
-        const memo = t.memo.trim().split('\n')[0];
-        const meta = (rep ? `<span>${icon('repeat', 12, 2)}${rep}</span>` : '')
-          + (memo ? `<span class="memo-prev">${icon('memo', 12, 2)}<em>${esc(memo)}</em></span>` : '');
-        return `<li class="todo${done ? ' done' : ''}" data-id="${t.id}">
-          <button class="box" data-action="toggle" data-id="${t.id}" aria-label="완료 표시"><span>${done ? CHECK : ''}</span></button>
-          <button class="todo-main" data-action="openDetail" data-id="${t.id}">
-            <div class="t">${esc(t.text)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}
-          </button>
-        </li>`;
-      }).join('');
-      const doneIn = list.filter(t => isDone(t, selected)).length;
-      return `<section class="cat" style="--c:${c.color}" data-cat="${c.id}">
-        <div class="cat-head">
-          <button class="cat-name" data-action="editCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>
-          <span class="cat-count">${list.length ? `${doneIn}/${list.length}` : ''}</span>
-          <button class="more-btn" data-action="editCat" data-id="${c.id}" aria-label="${esc(c.name)} 편집·삭제">${icon('more', 20, 2)}</button>
-          <button class="add-btn" data-action="addTodo" data-id="${c.id}" aria-label="${esc(c.name)}에 할 일 추가">${icon('plus', 14, 2.2)}</button>
-        </div>
-        ${rows ? `<ul class="todos">${rows}</ul>` : `<div class="empty-cat">할 일이 없어요</div>`}
-      </section>`;
-    }).join('');
+    const sections = renderSections(selected, visibleCats, { withNone: filter === 'all' });
 
     const isToday = selected === tk;
     const reminder = backupReminder();
@@ -574,8 +615,64 @@
       ${filters}
       <div class="fade">
         ${items.length ? `<div class="progress"><span>${doneCount}/${items.length}</span><div class="track"><i style="width:${pct}%"></i></div><span>${pct}%</span></div>` : ''}
-        ${sections || '<div class="empty-all">오른쪽 + 를 눌러 카테고리를 만들어 보세요</div>'}
-      </div>`;
+        ${sections || '<div class="empty-all">아래 + 버튼으로 할 일을 추가해 보세요</div>'}
+      </div>
+      <button class="fab" data-action="addTodo" data-id="${filter === 'all' ? '' : filter}" aria-label="할 일 추가">${icon('plus', 26, 2.2)}</button>`;
+  }
+
+  // ============ 카테고리별 할 일 묶음 (첫 화면·월 달력 공용) ============
+  const NONE_COLOR = '#C9C4BE';
+  function todoRow(t, k) {
+    const done = isDone(t, k);
+    const rep = repeatLabel(t);
+    const memo = (t.memo || '').trim().split('\n')[0];
+    const meta = (rep ? `<span>${icon('repeat', 12, 2)}${rep}</span>` : '')
+      + (memo ? `<span class="memo-prev">${icon('memo', 12, 2)}<em>${esc(memo)}</em></span>` : '');
+    return `<li class="todo${done ? ' done' : ''}" data-id="${t.id}">
+      <button class="box" data-action="toggle" data-id="${t.id}" aria-label="완료 표시"><span>${done ? CHECK : ''}</span></button>
+      <button class="todo-main" data-action="openDetail" data-id="${t.id}">
+        <div class="t">${esc(t.text)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}
+      </button>
+    </li>`;
+  }
+  function section({ id, name, color, list, k, none }) {
+    // 카테고리 없는 할 일: 제목 없이 할 일만 맨 위에
+    if (none) return `<section class="cat none" style="--c:${color}"><ul class="todos">${list.map(t => todoRow(t, k)).join('')}</ul></section>`;
+    const foldKey = id;
+    const isFolded = folded.has(foldKey) && list.length > 0;
+    const doneIn = list.filter(t => isDone(t, k)).length;
+    return `<section class="cat${none ? ' none' : ''}" style="--c:${color}"${none ? '' : ` data-cat="${id}"`}>
+      <div class="cat-head">
+        ${none ? `<span class="cat-name"><i></i>${name}</span>`
+          : `<button class="cat-name" data-action="editCat" data-id="${id}"><i></i>${esc(name)}</button>`}
+        <span class="cat-count">${list.length ? `${doneIn}/${list.length}` : ''}</span>
+        ${list.length ? `<button class="fold-btn${isFolded ? ' folded' : ''}" data-action="fold" data-id="${foldKey}" aria-label="${isFolded ? '펼치기' : '접기'}">${icon('down', 18, 2)}</button>` : ''}
+        ${none ? '' : `<button class="more-btn" data-action="editCat" data-id="${id}" aria-label="${esc(name)} 편집·삭제">${icon('more', 20, 2)}</button>`}
+        <button class="add-btn" data-action="addTodo" data-id="${none ? '' : id}" aria-label="할 일 추가">${icon('plus', 14, 2.2)}</button>
+      </div>
+      ${!list.length ? '<div class="empty-cat">할 일이 없어요</div>'
+        : isFolded ? `<button class="folded-note" data-action="fold" data-id="${foldKey}">할 일 ${list.length}개 접혀 있어요</button>`
+        : `<ul class="todos">${list.map(t => todoRow(t, k)).join('')}</ul>`}
+    </section>`;
+  }
+  // withNone: '카테고리 없음' 묶음 포함, onlyFilled: 할 일이 있는 카테고리만
+  function renderSections(k, cats, { withNone = true, onlyFilled = false } = {}) {
+    const items = todosOn(k);
+    const known = new Set(data.categories.map(c => c.id));
+    const none = items.filter(t => !t.catId || !known.has(t.catId));
+    let html = withNone && none.length
+      ? section({ name: '카테고리 없음', color: NONE_COLOR, list: none, k, none: true }) : '';
+    html += cats.map(c => ({ c, list: items.filter(t => t.catId === c.id) }))
+      .filter(x => !onlyFilled || x.list.length)
+      .map(({ c, list }) => section({ id: c.id, name: c.name, color: c.color, list, k })).join('');
+    return html;
+  }
+
+  // 카테고리 버튼 줄이 두 줄 이상일 때만 접기 버튼 보이기
+  function updateChipFold() {
+    const sc = document.querySelector('.filter-scroll'), btn = document.querySelector('.fold-chips');
+    if (!sc || !btn) return;
+    btn.hidden = sc.scrollHeight <= 40;
   }
 
   // ============ 화면: 월 달력 ============
@@ -606,6 +703,10 @@
       todosOn(k).forEach(t => { total++; if (isDone(t, k)) done++; });
     }
 
+    // 고른 날짜의 할 일 (할 일이 있는 카테고리만)
+    const sd = parse(selected);
+    const dayList = renderSections(selected, data.categories, { onlyFilled: true });
+
     return `
       <div class="month-bar">
         <button class="icon-btn" data-action="closeMonth" aria-label="돌아가기">${icon('left')}</button>
@@ -620,11 +721,23 @@
         <div class="grid" data-swipe="month">${cells}</div>
         </div>
         <div class="month-sum">${total ? `이번 달 할 일 <b>${total}개</b> 중 <b>${done}개</b> 완료` : '날짜를 눌러 그날의 할 일을 확인하세요'}</div>
-      </div>`;
+        <div class="day-panel">
+          <div class="panel-head">
+            <div>
+              <div class="eyebrow">${selected === tk ? '오늘' : `${sd.getFullYear()}년`}</div>
+              <h2>${md(selected)} ${DOW[sd.getDay()]}요일</h2>
+            </div>
+            <button class="pill" data-action="goDay">이 날 보기 ›</button>
+          </div>
+          ${dayList || '<div class="empty-day">이 날은 할 일이 없어요</div>'}
+        </div>
+      </div>
+      <button class="fab" data-action="addTodo" data-id="" aria-label="할 일 추가">${icon('plus', 26, 2.2)}</button>`;
   }
 
   function render() {
     document.getElementById('app').innerHTML = view === 'day' ? renderDay() : renderMonth();
+    updateChipFold();
   }
 
   // ============ 바텀 시트 ============
@@ -681,11 +794,22 @@
           <button class="head-btn" data-action="closeSheet" aria-label="닫기">${icon('close', 20)}</button>
         </div>
         <input type="text" id="sheetText" placeholder="할 일을 입력하세요" value="${esc(s.text)}" autocomplete="off" enterkeyhint="done">
+        <div class="label">카테고리 <span class="opt">(선택)</span></div>
+        <div class="chips">
+          <button class="chip${!s.catId ? ' on' : ''}" data-action="sheetCat" data-id="">없음</button>
+          ${data.categories.map(c =>
+          `<button class="chip${c.id === s.catId ? ' on' : ''}" style="--c:${c.color}" data-action="sheetCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>`).join('')}</div>
+        <div class="label">${s.repeat !== 'none' ? '시작 날짜' : '날짜'}</div>
+        <div class="chips">
+          <label class="chip date-chip on">
+            ${icon('calendar', 15, 2)}<span>${md(s.date)} (${DOW[sd.getDay()]})</span>
+            <input type="date" id="dateInput" value="${s.date}">
+          </label>
+          <button class="chip" data-action="sheetShift" data-n="1">하루 미루기</button>
+          <button class="chip" data-action="sheetShift" data-n="7">일주일 미루기</button>
+        </div>
         <div class="label">메모</div>
         <textarea id="memo" placeholder="메모를 남겨 보세요 (선택)">${esc(s.memo || '')}</textarea>
-        <div class="label">카테고리</div>
-        <div class="chips">${data.categories.map(c =>
-          `<button class="chip${c.id === s.catId ? ' on' : ''}" style="--c:${c.color}" data-action="sheetCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>`).join('')}</div>
         <div class="label">반복</div>
         <div class="chips">${REPEATS.map(([v, n]) =>
           `<button class="chip${v === s.repeat ? ' on' : ''}" data-action="sheetRepeat" data-v="${v}">${n}</button>`).join('')}</div>
@@ -709,6 +833,40 @@
           <button class="btn primary" data-action="saveSheet">저장</button>
         </div>`;
       autosize(el.querySelector('#memo'));
+      return;
+    }
+
+    // 확인 창 (앱 안에서 직접 그림)
+    if (s.type === 'confirm') {
+      el.innerHTML = `
+        <div class="sheet-head"><h3>${esc(s.title)}</h3></div>
+        <div class="confirm-desc">${esc(s.desc)}</div>
+        <div class="sheet-actions">
+          <span class="spacer"></span>
+          <button class="btn" data-action="confirmNo">취소</button>
+          <button class="btn primary${s.danger ? ' warn' : ''}" data-action="confirmYes">${esc(s.ok)}</button>
+        </div>`;
+      return;
+    }
+
+    // 반복 할 일 삭제 방법 고르기
+    if (s.type === 'delRepeat') {
+      const t = findTodo(s.id);
+      el.innerHTML = `
+        <div class="sheet-head">
+          <h3>반복 할 일 삭제</h3>
+          <button class="head-btn" data-action="delBack" aria-label="닫기">${icon('close', 20)}</button>
+        </div>
+        <div class="del-desc">${esc(t.text)} · ↻ ${repeatLabel(t)}</div>
+        <div class="del-list">
+          <button class="del-opt" data-action="delOnly"><b>이 날만 삭제</b><span>${md(s.k)} 하루만 지워요</span></button>
+          <button class="del-opt" data-action="delAfter"><b>이 날부터 모두 삭제</b><span>${md(s.k)}부터는 더 이상 나오지 않아요</span></button>
+          <button class="del-opt danger" data-action="delAll"><b>전체 삭제</b><span>반복되는 할 일을 한꺼번에 모두 지워요</span></button>
+        </div>
+        <div class="sheet-actions">
+          <span class="spacer"></span>
+          <button class="btn" data-action="delBack">취소</button>
+        </div>`;
       return;
     }
 
@@ -774,7 +932,7 @@
 
   function todoForm(t) {
     return {
-      type: 'todo', id: t.id, text: t.text, memo: t.memo || '', catId: t.catId, date: t.date, repeat: t.repeat, until: t.until || null,
+      type: 'todo', id: t.id, text: t.text, memo: t.memo || '', catId: t.catId || null, date: t.date, origDate: t.date, repeat: t.repeat, until: t.until || null,
       days: new Set(t.repeat === 'weekdays' ? t.days : [parse(t.date).getDay()]),
     };
   }
@@ -785,12 +943,26 @@
     if (!text) return document.getElementById('sheetText').focus();
 
     if (sheet.type === 'todo') {
-      if (sheet.repeat === 'weekdays' && !sheet.days.size) { alert('반복할 요일을 하나 이상 선택해 주세요.'); return; }
+      if (sheet.repeat === 'weekdays' && !sheet.days.size) { toast('반복할 요일을 하나 이상 골라 주세요'); return; }
       const until = sheet.repeat !== 'none' && sheet.until ? sheet.until : null;
-      if (until && until < sheet.date) { alert('끝나는 날은 시작하는 날 이후로 골라 주세요.'); return; }
-      const fields = { text, memo: sheet.memo || '', catId: sheet.catId, repeat: sheet.repeat, days: sheet.repeat === 'weekdays' ? [...sheet.days] : [], until };
-      if (sheet.id) Object.assign(findTodo(sheet.id), fields);
-      else data.todos.push({ id: uid(), date: sheet.date, done: {}, ...fields });
+      if (until && until < sheet.date) { toast('끝나는 날은 시작하는 날 이후로 골라 주세요'); return; }
+      const fields = { text, memo: sheet.memo || '', catId: sheet.catId || null, date: sheet.date, repeat: sheet.repeat, days: sheet.repeat === 'weekdays' ? [...sheet.days] : [], until };
+      let moved = '';
+      if (sheet.id) {
+        const t = findTodo(sheet.id);
+        // 한 번만 하는 할 일을 다른 날로 옮기면 완료 표시도 같이 옮김
+        if (t.repeat === 'none' && sheet.repeat === 'none' && sheet.date !== sheet.origDate && t.done[sheet.origDate]) {
+          delete t.done[sheet.origDate]; t.done[sheet.date] = true;
+        }
+        Object.assign(t, fields);
+        if (sheet.date !== sheet.origDate) moved = `${md(sheet.date)}로 옮겼어요`;
+      } else {
+        data.todos.push({ id: uid(), done: {}, ...fields });
+        if (sheet.date !== selected) moved = `${md(sheet.date)}에 추가했어요`;
+      }
+      save(); closeSheet();
+      if (moved) toast(moved);
+      return;
     } else {
       if (sheet.id) Object.assign(data.categories.find(c => c.id === sheet.id), { name: text, color: sheet.color });
       else data.categories.push({ id: uid(), name: text, color: sheet.color });
@@ -829,7 +1001,7 @@
       }
       case 'openDetail': return openSheet(todoForm(findTodo(id)), false); // 할 일을 누르면 수정 + 메모 한 번에
       case 'addTodo':
-        return openSheet({ type: 'todo', id: null, text: '', memo: '', catId: id, date: selected, repeat: 'none', until: null, days: new Set([parse(selected).getDay()]) });
+        return openSheet({ type: 'todo', id: null, text: '', memo: '', catId: id || null, date: selected, repeat: 'none', until: null, days: new Set([parse(selected).getDay()]) });
       case 'addCat': return openSheet({ type: 'cat', id: null, text: '', color: COLORS[data.categories.length % COLORS.length] });
       case 'editCat': { const c = catOf(id); return openSheet({ type: 'cat', id: c.id, text: c.name, color: c.color }); }
 
@@ -837,19 +1009,45 @@
       case 'closeMonth': view = 'day'; break;
       case 'moveMonth': cursor = new Date(cursor.getFullYear(), cursor.getMonth() + Number(n), 1); break;
       case 'thisMonth': selected = todayKey(); cursor = monthOf(selected); break;
-      case 'pickDate': selected = date; view = 'day'; window.scrollTo(0, 0); break;
+      case 'pickDate': selected = date; break; // 월 달력에 머물면서 아래에 그날 할 일 보여 주기
+      case 'goDay': view = 'day'; window.scrollTo(0, 0); break;
+      case 'fold': folded.has(id) ? folded.delete(id) : folded.add(id); setLS(FOLD, JSON.stringify([...folded])); break;
+      case 'foldChips': chipsFolded = !chipsFolded; setLS(CHIPFOLD, chipsFolded ? '1' : '0'); break;
 
       case 'deleteTodo': {
         const t = findTodo(sheet.id);
-        if (!confirm(t.repeat !== 'none' ? '반복되는 할 일 전체가 삭제됩니다. 삭제할까요?' : '이 할 일을 삭제할까요?')) return;
+        if (t.repeat !== 'none') { // 반복 할 일은 어떻게 지울지 고르기
+          syncText();
+          return openSheet({ type: 'delRepeat', id: t.id, k: occursOn(t, selected) ? selected : t.date, back: sheet }, false);
+        }
+        // 한 번만 하는 할 일은 바로 삭제 (아래 알림에서 되돌리기 가능)
         const before = JSON.stringify(data);
         data.todos = data.todos.filter(x => x.id !== t.id);
         save(); closeSheet();
         return toast('할 일을 삭제했어요', before);
       }
+      case 'confirmYes': return sheet.onOk();
+      case 'confirmNo': return sheet.back ? openSheet(sheet.back, false) : closeSheet();
+      case 'delBack': return openSheet(sheet.back, false);
+      case 'delOnly': case 'delAfter': case 'delAll': {
+        const t = findTodo(sheet.id), k = sheet.k;
+        const before = JSON.stringify(data);
+        let msg = '반복 할 일을 모두 삭제했어요';
+        if (action === 'delOnly') { t.skip = [...(t.skip || []), k]; msg = `${md(k)} 할 일만 삭제했어요`; }
+        else if (action === 'delAfter' && k > t.date) { t.until = addDays(k, -1); msg = `${md(k)}부터 삭제했어요`; }
+        else data.todos = data.todos.filter(x => x.id !== t.id);
+        save(); closeSheet();
+        return toast(msg, before);
+      }
+      case 'sheetShift': {
+        syncText();
+        sheet.date = addDays(sheet.date, Number(n));
+        if (sheet.until && sheet.until < sheet.date) sheet.until = null;
+        return renderSheet();
+      }
 
       // 추가/수정 시트
-      case 'sheetCat': sheet.catId = id; return rerenderSheet();
+      case 'sheetCat': sheet.catId = id || null; return rerenderSheet();
       case 'sheetRepeat': sheet.repeat = v; return rerenderSheet();
       case 'sheetUntil': sheet.until = v || null; return rerenderSheet();
       case 'sheetDay': { const d = Number(v); sheet.days.has(d) ? sheet.days.delete(d) : sheet.days.add(d); return rerenderSheet(); }
@@ -857,14 +1055,21 @@
       case 'saveSheet': return saveSheet();
       case 'closeSheet': return closeSheet();
       case 'deleteCat': {
+        syncText();
         const c = catOf(sheet.id);
         const cnt = data.todos.filter(t => t.catId === c.id).length;
-        if (!confirm(`'${c.name}' 카테고리${cnt ? `와 할 일 ${cnt}개` : ''}를 삭제할까요?`)) return;
-        const before = JSON.stringify(data);
-        data.categories = data.categories.filter(x => x.id !== c.id);
-        data.todos = data.todos.filter(t => t.catId !== c.id);
-        save(); closeSheet();
-        return toast(`'${c.name}' 카테고리를 삭제했어요`, before);
+        return askConfirm({
+          title: `'${c.name}' 카테고리를 삭제할까요?`,
+          desc: cnt ? `이 카테고리의 할 일 ${cnt}개도 같이 삭제돼요.` : '이 카테고리에는 할 일이 없어요.',
+          ok: '삭제', danger: true, back: sheet,
+          onOk: () => {
+            const before = JSON.stringify(data);
+            data.categories = data.categories.filter(x => x.id !== c.id);
+            data.todos = data.todos.filter(t => t.catId !== c.id);
+            save(); closeSheet();
+            toast(`'${c.name}' 카테고리를 삭제했어요`, before);
+          },
+        });
       }
       default: return;
     }
@@ -879,12 +1084,16 @@
 
   // 반복 끝나는 날짜 고르기 (PC 브라우저에서도 칩을 누르면 달력이 열리게)
   document.addEventListener('click', e => {
-    if (e.target.id === 'untilDate') { try { e.target.showPicker(); } catch {} }
+    if (e.target.id === 'untilDate' || e.target.id === 'dateInput') { try { e.target.showPicker(); } catch {} }
   });
   document.addEventListener('change', e => {
-    if (e.target.id !== 'untilDate' || !sheet) return;
-    sheet.until = e.target.value || null;
-    rerenderSheet();
+    if (!sheet) return;
+    if (e.target.id === 'untilDate') { sheet.until = e.target.value || null; rerenderSheet(); }
+    if (e.target.id === 'dateInput' && e.target.value) {
+      sheet.date = e.target.value;
+      if (sheet.until && sheet.until < sheet.date) sheet.until = null;
+      rerenderSheet();
+    }
   });
 
   // 메모 칸은 글 길이에 맞춰 늘어남 (저장은 '저장' 버튼으로)
@@ -899,28 +1108,56 @@
   });
 
   // ============ 꾹 눌러서 순서 바꾸기 ============
-  // 할 일 또는 카테고리 제목을 0.45초 꾹 누르면 들어 올려지고, 위아래로 끌어서 놓으면 순서가 바뀜
-  let press = null, drag = null, suppressClick = false;
+  // 할 일 또는 카테고리 제목을 0.4초 꾹 누르면 들어 올려지고, 위아래로 끌어서 놓으면 순서가 바뀜
+  // 손가락(터치)과 마우스를 따로 처리해야 휴대폰 브라우저가 중간에 스크롤로 착각해서 끊지 않음
+  let press = null, drag = null, suppressClick = false, lastTouch = 0;
 
-  document.addEventListener('pointerdown', e => {
-    if (sheet || drag || e.button > 0) return;
-    if (e.target.closest('.box, .add-btn, .more-btn')) return; // 체크박스·버튼은 제외
-    const item = e.target.closest('.todo') || (e.target.closest('.cat-head') && e.target.closest('.cat'));
+  function dragItemAt(target) {
+    if (sheet || drag) return null;
+    if (target.closest('.box, .add-btn, .more-btn, .fold-btn')) return null; // 체크박스·버튼은 제외
+    return target.closest('.todo') || (target.closest('.cat-head') && target.closest('.cat[data-cat]'));
+  }
+  function pressStart(item, x, y) {
+    cancelPress();
+    press = { item, x, y, lastY: y, timer: setTimeout(() => startDrag(press && press.lastY), 400) };
+  }
+  function pressMove(x, y) {
+    if (!press) return;
+    press.lastY = y;
+    // 누르는 동안 손가락이 움직이면 스크롤하려는 것으로 보고 취소
+    if (Math.hypot(x - press.x, y - press.y) > 10) cancelPress();
+  }
+
+  // 터치
+  document.addEventListener('touchstart', e => {
+    lastTouch = Date.now();
+    if (e.touches.length > 1) return cancelPress();
+    const item = dragItemAt(e.target);
+    if (item) pressStart(item, e.touches[0].clientX, e.touches[0].clientY);
+  }, { passive: true });
+  document.addEventListener('touchmove', e => {
+    const p = e.touches[0];
+    if (drag) { e.preventDefault(); moveDrag(p.clientY); } // 끄는 동안 화면이 스크롤되지 않게
+    else pressMove(p.clientX, p.clientY);
+  }, { passive: false });
+  document.addEventListener('touchend', e => { lastTouch = Date.now(); if (drag) e.preventDefault(); endDrag(); }, { passive: false });
+  document.addEventListener('touchcancel', endDrag);
+
+  // 마우스 (터치 직후에 따라오는 가짜 마우스 이벤트는 무시)
+  document.addEventListener('mousedown', e => {
+    if (e.button !== 0 || Date.now() - lastTouch < 800) return;
+    const item = dragItemAt(e.target);
     if (!item) return;
-    press = { item, x: e.clientX, y: e.clientY, lastY: e.clientY, timer: setTimeout(() => startDrag(press && press.lastY), 450) };
+    e.preventDefault(); // 끄는 동안 글자가 선택되지 않게
+    pressStart(item, e.clientX, e.clientY);
   });
-  document.addEventListener('pointermove', e => {
-    if (drag) return moveDrag(e.clientY);
-    if (press) {
-      press.lastY = e.clientY;
-      // 누르는 동안 손가락이 움직이면 스크롤하려는 것으로 보고 취소
-      if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > 8) cancelPress();
-    }
+  document.addEventListener('mousemove', e => {
+    if (Date.now() - lastTouch < 800) return;
+    if (drag) moveDrag(e.clientY); else pressMove(e.clientX, e.clientY);
   });
-  document.addEventListener('pointerup', endDrag);
-  document.addEventListener('pointercancel', endDrag);
-  // 끄는 동안 화면이 스크롤되지 않게
-  document.addEventListener('touchmove', e => { if (drag) e.preventDefault(); }, { passive: false });
+  document.addEventListener('mouseup', () => { if (Date.now() - lastTouch >= 800) endDrag(); });
+  window.addEventListener('blur', endDrag);
+
   document.addEventListener('contextmenu', e => { if (press || drag) e.preventDefault(); });
   // 꾹 누른 뒤 손을 떼면 생기는 클릭(수정 창 열기)은 무시
   document.addEventListener('click', e => {
@@ -935,7 +1172,7 @@
     press = null;
     const kind = item.classList.contains('todo') ? 'todo' : 'cat';
     const list = item.parentElement;
-    if ([...list.children].filter(el => el.matches(kind === 'todo' ? '.todo' : '.cat')).length < 2) return; // 바꿀 게 없음
+    if ([...list.children].filter(el => el.matches(kind === 'todo' ? '.todo' : '.cat[data-cat]')).length < 2) return; // 바꿀 게 없음
     drag = { item, list, kind, grab: y - item.getBoundingClientRect().top };
     item.classList.add('dragging');
     document.body.classList.add('is-dragging');
@@ -945,7 +1182,7 @@
 
   function moveDrag(y) {
     const { item, list, kind } = drag;
-    const sibs = [...list.children].filter(el => el !== item && el.matches(kind === 'todo' ? '.todo' : '.cat'));
+    const sibs = [...list.children].filter(el => el !== item && el.matches(kind === 'todo' ? '.todo' : '.cat[data-cat]'));
     const before = sibs.find(el => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; });
     if (before) { if (item.nextElementSibling !== before) list.insertBefore(item, before); }
     else if (sibs.length && sibs[sibs.length - 1].nextElementSibling !== item) sibs[sibs.length - 1].after(item);
@@ -964,7 +1201,7 @@
     item.style.transform = '';
     document.body.classList.remove('is-dragging');
     if (kind === 'todo') reorder(data.todos, [...list.querySelectorAll('.todo')].map(el => el.dataset.id));
-    else reorder(data.categories, [...list.children].filter(el => el.matches('.cat')).map(el => el.dataset.cat));
+    else reorder(data.categories, [...list.children].filter(el => el.matches('.cat[data-cat]')).map(el => el.dataset.cat));
     save();
     render();
     setTimeout(() => { suppressClick = false; }, 400);
