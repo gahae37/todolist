@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#f4f3f1">
 <title>TodoList</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
@@ -17,6 +17,7 @@
 <style>
   :root {
     --bg: #ffffff;
+    --page: #f4f3f1;   /* 화면 바탕 (연한 회색) */
     --soft: #f6f5f3;
     --text: #2f2f33;
     --sub: #7a7a80;
@@ -30,7 +31,7 @@
   html, body { margin: 0; }
   body {
     min-height: 100vh; min-height: 100dvh;
-    background: var(--bg); color: var(--text);
+    background: var(--page); color: var(--text);
     font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -52,7 +53,7 @@
     width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text);
   }
   .pill {
-    height: 32px; padding: 0 14px; border-radius: 999px; background: var(--soft);
+    height: 32px; padding: 0 14px; border-radius: 999px; background: #fff;
     font-size: 13px; font-weight: 600; color: var(--sub);
   }
   .date-head { margin: 10px 0 14px; }
@@ -68,18 +69,23 @@
   .wd.sun .w { color: var(--sun); }
   .wd.sat .w { color: var(--sat); }
   .wd .n { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 700; }
-  .wd.today .n { background: var(--soft); }
+  .wd.today .n { background: #fff; }
   .wd.selected .n { background: var(--text); color: #fff; }
   .wd .st { width: 5px; height: 5px; border-radius: 50%; }
   .wd .st.left { background: #dcdad6; }
   .wd .st.all { background: var(--good); }
 
   .progress { display: flex; align-items: center; gap: 10px; margin: 18px 0 4px; font-size: 12px; font-weight: 600; color: var(--muted); }
-  .track { flex: 1; height: 4px; background: var(--line); border-radius: 999px; overflow: hidden; }
+  .track { flex: 1; height: 4px; background: #e4e2de; border-radius: 999px; overflow: hidden; }
   .track i { display: block; height: 100%; background: var(--good); border-radius: 999px; transition: width .3s; }
 
   /* ---------- 카테고리 & 할 일 ---------- */
-  .cat { margin-top: 26px; }
+  /* 카테고리마다 흰 카드 */
+  .cat {
+    margin-top: 12px; padding: 8px 12px 4px 16px; border-radius: 18px;
+    background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .04);
+  }
+  .progress + .cat, .fade > .cat:first-child { margin-top: 14px; }
   .cat-head { display: flex; align-items: center; gap: 6px; }
   .cat-name {
     display: inline-flex; align-items: center; gap: 8px; height: 36px; padding-right: 6px;
@@ -95,11 +101,8 @@
     color: var(--sub); background: color-mix(in srgb, var(--c) 28%, #fff);
   }
 
-  /* 할 일 목록: 카테고리보다 한 칸 들여 쓰고 연한 회색 카드로 묶기 */
-  .todos {
-    list-style: none; margin: 6px 0 0 18px; padding: 0 14px;
-    background: var(--soft); border-radius: 14px;
-  }
+  /* 할 일 목록: 카테고리보다 한 칸 들여 쓰기 */
+  .todos { list-style: none; margin: 0 4px 0 18px; padding: 0; }
   .todo { display: flex; align-items: flex-start; gap: 10px; }
   .box {
     flex: none; width: 44px; height: 44px; margin: 0 -11px 0 -11px; display: grid; place-items: center;
@@ -112,7 +115,7 @@
   .done .box span, .box.on span { background: var(--c); border-color: var(--c); }
   .todo-main {
     flex: 1; min-width: 0; min-height: 44px; padding: 11px 0; text-align: left;
-    border-bottom: 1px solid #ebe9e5;
+    border-bottom: 1px solid var(--line);
   }
   .todo:last-child .todo-main { border-bottom: none; }
   .todo-main .t { font-size: 15px; line-height: 1.45; word-break: break-word; }
@@ -121,10 +124,7 @@
   .meta span { display: inline-flex; align-items: center; gap: 3px; min-width: 0; }
   .meta .memo-prev { overflow: hidden; }
   .meta .memo-prev em { font-style: normal; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .empty-cat {
-    margin: 6px 0 0 18px; padding: 12px 14px; border-radius: 14px;
-    background: var(--soft); font-size: 13px; color: var(--muted);
-  }
+  .empty-cat { margin-left: 18px; padding: 2px 0 12px; font-size: 13px; color: var(--muted); }
 
   .empty-all { margin-top: 40px; text-align: center; font-size: 14px; color: var(--muted); }
 
@@ -134,7 +134,7 @@
   .fchip {
     flex: none; height: 34px; padding: 0 14px; border-radius: 999px;
     display: inline-flex; align-items: center; gap: 7px;
-    background: var(--soft); color: var(--sub); font-size: 14px; font-weight: 600; white-space: nowrap;
+    background: #fff; color: var(--sub); font-size: 14px; font-weight: 600; white-space: nowrap;
   }
   .fchip i { width: 8px; height: 8px; border-radius: 50%; background: var(--c); }
   .fchip.on { background: var(--text); color: #fff; }
@@ -148,7 +148,7 @@
   .month-bar { display: flex; align-items: center; height: 44px; margin: 0 -12px; }
   .month-bar h1 { margin: 0 auto 0 0; font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
   .dow, .grid { display: grid; grid-template-columns: repeat(7, 1fr); }
-  .dow { margin-top: 18px; }
+  .month-card { margin-top: 14px; padding: 14px 8px 8px; border-radius: 18px; background: #fff; box-shadow: 0 1px 2px rgba(0, 0, 0, .04); }
   .dow div { text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); padding-bottom: 6px; }
   .dow .sun, .cell.sun .num { color: var(--sun); }
   .dow .sat, .cell.sat .num { color: var(--sat); }
@@ -162,7 +162,7 @@
   .dot { width: 6px; height: 6px; border-radius: 50%; border: 1.5px solid color-mix(in srgb, var(--c) 80%, #555); }
   .dot.on { background: var(--c); border-color: var(--c); }
   .more { font-size: 9px; line-height: 6px; color: var(--muted); }
-  .month-sum { margin-top: 20px; padding: 14px 16px; border-radius: 14px; background: var(--soft); font-size: 14px; color: var(--sub); }
+  .month-sum { margin-top: 12px; padding: 14px 16px; border-radius: 14px; background: #fff; font-size: 14px; color: var(--sub); }
   .month-sum b { color: var(--text); }
 
   /* ---------- 바텀 시트 ---------- */
@@ -584,8 +584,10 @@
         <button class="icon-btn" data-action="moveMonth" data-n="1" aria-label="다음 달">${icon('right', 18)}</button>
       </div>
       <div class="fade">
+        <div class="month-card">
         <div class="dow">${DOW.map((n, i) => `<div class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${n}</div>`).join('')}</div>
         <div class="grid" data-swipe="month">${cells}</div>
+        </div>
         <div class="month-sum">${total ? `이번 달 할 일 <b>${total}개</b> 중 <b>${done}개</b> 완료` : '날짜를 눌러 그날의 할 일을 확인하세요'}</div>
       </div>`;
   }
