@@ -106,8 +106,8 @@
     flex: none; width: 44px; height: 44px; margin: 0 -11px 0 -11px; display: grid; place-items: center;
   }
   .box span {
-    width: 18px; height: 18px; border-radius: 6px; display: grid; place-items: center;
-    border: 1.8px solid color-mix(in srgb, var(--c) 80%, #555);
+    width: 15px; height: 15px; border-radius: 5px; display: grid; place-items: center;
+    border: 1.6px solid color-mix(in srgb, var(--c) 80%, #555);
     transition: background .15s;
   }
   .done .box span, .box.on span { background: var(--c); border-color: var(--c); }
@@ -163,11 +163,12 @@
   .cell .dot { width: 7px; height: 7px; }
   /* 달력 접기 */
   /* 휴대폰: 달력 아래 손잡이를 위로 밀면 접기, 아래로 밀면 펼치기 (PC는 버튼) */
-  .month-handle { display: none; height: 30px; align-items: center; justify-content: center; touch-action: none; cursor: grab; }
-  .month-handle span { width: 40px; height: 5px; border-radius: 999px; background: #dcdad6; }
+  .month-handle, .week-handle { display: none; height: 30px; align-items: center; justify-content: center; touch-action: none; cursor: grab; }
+  .month-handle span, .week-handle span { width: 40px; height: 5px; border-radius: 999px; background: #dcdad6; }
+  .week-handle { height: 22px; margin-bottom: -8px; }
   @media (pointer: coarse) {
     .month-fold { display: none !important; }
-    .month-handle { display: flex; }
+    .month-handle, .week-handle { display: flex; }
   }
   .month-fold {
     display: flex; align-items: center; justify-content: center; gap: 4px; margin: 2px auto 0;
@@ -189,7 +190,7 @@
   .sheet {
     width: 100%; max-width: 420px; max-height: 100%; background: #fff;
     display: flex; flex-direction: column; overflow: hidden;
-    border-radius: 22px; padding: 22px 0 18px;
+    border-radius: 22px; padding: 16px 0 18px;
     box-shadow: 0 12px 40px rgba(30, 30, 34, .18);
     animation: pop .2s cubic-bezier(.2, .8, .2, 1);
   }
@@ -288,8 +289,8 @@
   .filters:not(.folded) .fold-chips svg { transform: rotate(180deg); }
 
   /* 카테고리 없는 할 일 묶음 */
-  .cat.none { padding-top: 6px; }
-  .cat.none .todos { margin-left: 0; }
+  /* 카테고리 없는 할 일도 다른 목록과 같은 위치·간격으로 */
+  .cat.none { padding-top: 8px; }
 
   /* 할 일 추가 버튼 (오른쪽 아래 둥근 버튼) */
   .fab {
@@ -318,11 +319,12 @@
   .star-btn { color: #c9c6c0; }
   .star-btn.on { color: var(--gold, #e5ac3a); }
   .star-btn.on svg { fill: currentColor; }
-  .star-mark { display: inline-grid; vertical-align: -1px; margin-right: 4px; color: #e5ac3a; }
+  /* 중요한 할 일: 줄 오른쪽 끝에 노란 별 */
+  .star-mark { flex: none; align-self: center; display: grid; place-items: center; width: 24px; color: #e5ac3a; }
   .star-mark svg { fill: currentColor; }
-  .cat.imp .cat-name { color: #b8860b; }
-  .cat.imp .cat-name svg { fill: currentColor; }
-  .cat.imp .star-mark { display: none; } /* 중요 묶음 안에서는 별 생략 */
+  .todo.imp .todo-main { padding-right: 4px; }
+  .add-chip { width: 36px; padding: 0; justify-content: center; border: 1.5px dashed #d4d2ce; background: #fff; }
+  .shift-row { margin-top: 6px; }
   .confirm-desc { font-size: 14px; line-height: 1.55; color: var(--sub); }
   .btn.primary.warn { background: #e06c6c; }
 
@@ -335,9 +337,13 @@
   .todo.dragging { outline: 8px solid #fff; } /* 들어 올린 할 일 둘레에 여백처럼 보이게 */
   .todo.dragging .todo-main { border-bottom-color: transparent; }
   body.is-dragging, body.is-dragging * { cursor: grabbing !important; }
+  /* 할 일을 다른 카테고리로 끌고 갈 때: 놓일 카테고리 표시 */
+  .cat.drop-target { background: color-mix(in srgb, var(--c) 10%, #fff); border-radius: 14px; }
+  .todos:not(:empty) ~ .empty-cat { display: none; }
 
   /* 팝업 제목 줄: 오른쪽 위 삭제·닫기 버튼 */
-  .sheet-head { display: flex; align-items: center; gap: 2px; margin: -6px -8px 12px 0; }
+  .sheet-head { display: flex; align-items: center; gap: 2px; margin: 0 -8px 12px 0; min-height: 38px; }
+  .sheet-head h3 { line-height: 1.4; padding: 2px 0; }
   .sheet-head h3 { margin: 0 auto 0 0; }
   .head-btn { width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; color: var(--sub); }
   .head-btn.danger { color: var(--sun); }
@@ -393,7 +399,7 @@
   };
   const icon = (name, size = 22, sw = 1.7) =>
     `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PATHS[name]}</svg>`;
-  const CHECK = icon('check', 12, 3);
+  const CHECK = icon('check', 10, 3.2);
 
   // ============ 날짜 유틸 ============
   const pad = n => String(n).padStart(2, '0');
@@ -645,6 +651,7 @@
         <div class="week-days">${week}</div>
         <button class="icon-btn" data-action="moveWeek" data-n="7" aria-label="다음 주">${icon('right', 18)}</button>
       </div>
+      <div class="week-handle" aria-label="아래로 밀면 월 달력"><span></span></div>
       ${filters}
       <div class="fade">
         ${items.length ? `<div class="progress"><span>${doneCount}/${items.length}</span><div class="track"><i style="width:${pct}%"></i></div><span>${pct}%</span></div>` : ''}
@@ -663,33 +670,23 @@
       + (memo ? `<span class="memo-prev">${icon('memo', 12, 2)}<em>${esc(memo)}</em></span>` : '');
     const known = data.categories.some(c => c.id === t.catId);
     const color = known ? catOf(t.catId).color : NONE_COLOR;
-    return `<li class="todo${done ? ' done' : ''}" data-id="${t.id}" style="--c:${color}">
+    return `<li class="todo${done ? ' done' : ''}${t.important ? ' imp' : ''}" data-id="${t.id}" style="--c:${color}">
       <button class="box" data-action="toggle" data-id="${t.id}" aria-label="완료 표시"><span>${done ? CHECK : ''}</span></button>
       <button class="todo-main" data-action="openDetail" data-id="${t.id}">
-        <div class="t">${t.important ? `<span class="star-mark">${icon('star', 13, 2)}</span>` : ''}${esc(t.text)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}
+        <div class="t">${esc(t.text)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}
       </button>
+      ${t.important ? `<span class="star-mark" aria-label="중요">${icon('star', 16, 2)}</span>` : ''}
     </li>`;
   }
-  function section({ id, name, color, list, k, none, imp }) {
+  function section({ id, name, color, list, k, none }) {
     // 카테고리 없는 할 일: 제목 없이 할 일만 맨 위에
     if (none) return `<section class="cat none" style="--c:${color}"><ul class="todos">${list.map(t => todoRow(t, k)).join('')}</ul></section>`;
-    // 중요한 할 일: 맨 위 '중요' 묶음
-    if (imp) {
-      const f = folded.has('_imp');
-      const doneIn = list.filter(t => isDone(t, k)).length;
-      return `<section class="cat imp">
-        <div class="cat-head">
-          <span class="cat-name">${icon('star', 15, 2)}중요</span>
-          <span class="cat-count">${doneIn}/${list.length}</span>
-          <button class="fold-btn${f ? ' folded' : ''}" data-action="fold" data-id="_imp" aria-label="${f ? '펼치기' : '접기'}">${icon('down', 18, 2)}</button>
-        </div>
-        ${f ? `<button class="folded-note" data-action="fold" data-id="_imp">할 일 ${list.length}개 접혀 있어요</button>`
-          : `<ul class="todos">${list.map(t => todoRow(t, k)).join('')}</ul>`}
-      </section>`;
-    }
     const foldKey = id;
     const isFolded = folded.has(foldKey) && list.length > 0;
     const doneIn = list.filter(t => isDone(t, k)).length;
+    // 접으면 중요한 할 일까지 모두 접힘
+    const keep = isFolded ? [] : list;
+    const hidden = list.length;
     return `<section class="cat${none ? ' none' : ''}" style="--c:${color}"${none ? '' : ` data-cat="${id}"`}>
       <div class="cat-head">
         ${none ? `<span class="cat-name"><i></i>${name}</span>`
@@ -699,9 +696,9 @@
         ${none ? '' : `<button class="more-btn" data-action="editCat" data-id="${id}" aria-label="${esc(name)} 편집·삭제">${icon('more', 20, 2)}</button>`}
         <button class="add-btn" data-action="addTodo" data-id="${none ? '' : id}" aria-label="할 일 추가">${icon('plus', 14, 2.2)}</button>
       </div>
-      ${!list.length ? '<div class="empty-cat">할 일이 없어요</div>'
-        : isFolded ? `<button class="folded-note" data-action="fold" data-id="${foldKey}">할 일 ${list.length}개 접혀 있어요</button>`
-        : `<ul class="todos">${list.map(t => todoRow(t, k)).join('')}</ul>`}
+      ${!list.length ? '<div class="empty-cat">할 일이 없어요</div>' : ''}
+      ${keep.length ? `<ul class="todos">${keep.map(t => todoRow(t, k)).join('')}</ul>` : ''}
+      ${isFolded && hidden ? `<button class="folded-note" data-action="fold" data-id="${foldKey}">할 일 ${hidden}개 접혀 있어요</button>` : ''}
     </section>`;
   }
   // withNone: '카테고리 없음' 묶음 포함, onlyFilled: 할 일이 있는 카테고리만
@@ -710,12 +707,9 @@
     const shown = new Set(cats.map(c => c.id));
     const isNone = t => !t.catId || !known.has(t.catId);
     // 지금 보이는 카테고리(+카테고리 없음)의 할 일만
-    const visible = todosOn(k).filter(t => shown.has(t.catId) || (withNone && isNone(t)));
-    const important = visible.filter(t => t.important);
-    const items = visible.filter(t => !t.important); // 중요한 할 일은 맨 위 묶음에만
+    const items = todosOn(k).filter(t => shown.has(t.catId) || (withNone && isNone(t)));
     const none = items.filter(isNone);
-    let html = important.length ? section({ list: important, k, imp: true }) : '';
-    html += none.length ? section({ name: '카테고리 없음', color: NONE_COLOR, list: none, k, none: true }) : '';
+    let html = none.length ? section({ name: '카테고리 없음', color: NONE_COLOR, list: none, k, none: true }) : '';
     html += cats.map(c => ({ c, list: items.filter(t => t.catId === c.id) }))
       .filter(x => !onlyFilled || x.list.length)
       .map(({ c, list }) => section({ id: c.id, name: c.name, color: c.color, list, k })).join('');
@@ -867,13 +861,16 @@
         <div class="chips">
           <button class="chip${!s.catId ? ' on' : ''}" data-action="sheetCat" data-id="">없음</button>
           ${data.categories.map(c =>
-          `<button class="chip${c.id === s.catId ? ' on' : ''}" style="--c:${c.color}" data-action="sheetCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>`).join('')}</div>
+          `<button class="chip${c.id === s.catId ? ' on' : ''}" style="--c:${c.color}" data-action="sheetCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>`).join('')}
+          <button class="chip add-chip" data-action="newCatFromTodo" aria-label="새 카테고리 만들기">${icon('plus', 15, 2)}</button></div>
         <div class="label">${s.repeat !== 'none' ? '시작 날짜' : '날짜'}</div>
         <div class="chips">
           <label class="chip date-chip on">
             ${icon('calendar', 15, 2)}<span>${md(s.date)} (${DOW[sd.getDay()]})</span>
             <input type="date" id="dateInput" value="${s.date}">
           </label>
+        </div>
+        <div class="chips shift-row">
           <button class="chip" data-action="sheetShift" data-n="1">하루 미루기</button>
           <button class="chip" data-action="sheetShift" data-n="7">일주일 미루기</button>
         </div>
@@ -941,14 +938,16 @@
 
     // 카테고리
     el.innerHTML = `
-      <div class="grab"></div>
-      <h3>${s.id ? '카테고리 편집' : '새 카테고리'}</h3>
+      <div class="sheet-head">
+        <h3>${s.id ? '카테고리 편집' : '새 카테고리'}</h3>
+        ${s.id ? `<button class="head-btn danger" data-action="deleteCat" aria-label="카테고리 삭제">${icon('trash', 20)}</button>` : ''}
+        <button class="head-btn" data-action="closeSheet" aria-label="닫기">${icon('close', 20)}</button>
+      </div>
       <input type="text" id="sheetText" placeholder="예: 운동, 공부, 독서" value="${esc(s.text)}" autocomplete="off" enterkeyhint="done">
       <div class="label">색상</div>
       <div class="swatches">${COLORS.map(c =>
         `<button class="swatch${c === s.color ? ' on' : ''}" style="--c:${c}" data-action="sheetColor" data-v="${c}" aria-label="색상 ${c}"></button>`).join('')}</div>
       <div class="sheet-actions">
-        ${s.id ? `<button class="btn ghost danger" data-action="deleteCat">${icon('trash', 18)}삭제</button>` : ''}
         <span class="spacer"></span>
         <button class="btn" data-action="closeSheet">취소</button>
         <button class="btn primary" data-action="saveSheet">저장</button>
@@ -1034,7 +1033,12 @@
       return;
     } else {
       if (sheet.id) Object.assign(data.categories.find(c => c.id === sheet.id), { name: text, color: sheet.color });
-      else data.categories.push({ id: uid(), name: text, color: sheet.color });
+      else {
+        const newId = uid();
+        data.categories.push({ id: newId, name: text, color: sheet.color });
+        // 할 일 창에서 + 로 만든 카테고리면, 할 일 창으로 돌아가서 새 카테고리를 골라 둠
+        if (sheet.back) { const back = sheet.back; back.catId = newId; save(); return openSheet(back, false); }
+      }
     }
     save(); closeSheet();
   }
@@ -1120,13 +1124,18 @@
       case 'sheetCat': sheet.catId = id || null; return rerenderSheet();
       case 'sheetImp':
         syncText(); sheet.important = !sheet.important; renderSheet();
-        return toast(sheet.important ? '저장하면 맨 위 \'중요\'에 올라가요' : '중요 표시를 뺐어요');
+        return toast(sheet.important ? '중요 표시를 했어요' : '중요 표시를 뺐어요');
       case 'sheetRepeat': sheet.repeat = v; return rerenderSheet();
       case 'sheetUntil': sheet.until = v || null; return rerenderSheet();
       case 'sheetDay': { const d = Number(v); sheet.days.has(d) ? sheet.days.delete(d) : sheet.days.add(d); return rerenderSheet(); }
       case 'sheetColor': sheet.color = v; return rerenderSheet();
       case 'saveSheet': return saveSheet();
-      case 'closeSheet': return closeSheet();
+      case 'closeSheet':
+        if (sheet && sheet.type === 'cat' && sheet.back) return openSheet(sheet.back, false); // 할 일 창으로 돌아가기
+        return closeSheet();
+      case 'newCatFromTodo':
+        syncText();
+        return openSheet({ type: 'cat', id: null, text: '', color: COLORS[data.categories.length % COLORS.length], back: sheet });
       case 'deleteCat': {
         syncText();
         const c = catOf(sheet.id);
@@ -1245,8 +1254,12 @@
     press = null;
     const kind = item.classList.contains('todo') ? 'todo' : 'cat';
     const list = item.parentElement;
-    if ([...list.children].filter(el => el.matches(kind === 'todo' ? '.todo' : '.cat[data-cat]')).length < 2) return; // 바꿀 게 없음
-    drag = { item, list, kind, grab: y - item.getBoundingClientRect().top };
+    // 할 일은 다른 카테고리로도 옮길 수 있으니, 같은 화면(첫 화면 목록 / 월 달력 아래 목록) 전체가 범위
+    const root = item.closest('.fade, .day-panel') || list;
+    if (kind === 'todo') {
+      if (root.querySelectorAll('.todo').length < 2 && root.querySelectorAll('.cat').length < 2) return; // 옮길 데가 없음
+    } else if ([...list.children].filter(el => el.matches('.cat[data-cat]')).length < 2) return;
+    drag = { item, list, root, kind, origin: item.closest('.cat'), grab: y - item.getBoundingClientRect().top };
     item.classList.add('dragging');
     document.body.classList.add('is-dragging');
     suppressClick = true;
@@ -1254,29 +1267,66 @@
   }
 
   function moveDrag(y) {
-    const { item, list, kind } = drag;
-    const sibs = [...list.children].filter(el => el !== item && el.matches(kind === 'todo' ? '.todo' : '.cat[data-cat]'));
-    const before = sibs.find(el => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; });
-    if (before) { if (item.nextElementSibling !== before) list.insertBefore(item, before); }
-    else if (sibs.length && sibs[sibs.length - 1].nextElementSibling !== item) sibs[sibs.length - 1].after(item);
+    const { item, kind } = drag;
+    if (kind === 'todo') moveTodoTo(y);
+    else {
+      const list = drag.list;
+      const sibs = [...list.children].filter(el => el !== item && el.matches('.cat[data-cat]'));
+      const before = sibs.find(el => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; });
+      if (before) { if (item.nextElementSibling !== before) list.insertBefore(item, before); }
+      else if (sibs.length && sibs[sibs.length - 1].nextElementSibling !== item) sibs[sibs.length - 1].after(item);
+    }
     item.style.transform = '';
     const top = item.getBoundingClientRect().top;
     item.style.transform = `translateY(${y - drag.grab - top}px)`;
     if (y < 80) window.scrollBy(0, -8); else if (y > innerHeight - 80) window.scrollBy(0, 8);
   }
 
+  // 끌고 있는 할 일을 손가락 아래에 있는 카테고리 묶음 안의 알맞은 자리로 옮김
+  function moveTodoTo(y) {
+    const { item, root } = drag;
+    const sections = [...root.querySelectorAll('.cat')];
+    if (!sections.length) return;
+    let sec = sections.find(s => { const r = s.getBoundingClientRect(); return y >= r.top && y <= r.bottom; });
+    if (!sec) sec = y < sections[0].getBoundingClientRect().top ? sections[0] : sections[sections.length - 1];
+    let ul = sec.querySelector('ul.todos');
+    if (!ul) { // 할 일이 없는(또는 접힌) 카테고리: 임시 목록을 만들어 넣을 수 있게
+      ul = document.createElement('ul');
+      ul.className = 'todos';
+      const head = sec.querySelector('.cat-head');
+      head ? head.after(ul) : sec.prepend(ul);
+    }
+    const sibs = [...ul.children].filter(el => el !== item && el.matches('.todo'));
+    const before = sibs.find(el => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; });
+    if (before) { if (item.parentElement !== ul || item.nextElementSibling !== before) ul.insertBefore(item, before); }
+    else if (item.parentElement !== ul || item !== ul.lastElementChild) ul.appendChild(item);
+    sections.forEach(s => s.classList.toggle('drop-target', s === sec && s !== drag.origin));
+  }
+
   function endDrag() {
     cancelPress();
     if (!drag) return;
-    const { item, list, kind } = drag;
+    const { item, list, root, kind } = drag;
     drag = null;
     item.classList.remove('dragging');
     item.style.transform = '';
     document.body.classList.remove('is-dragging');
-    if (kind === 'todo') reorder(data.todos, [...list.querySelectorAll('.todo')].map(el => el.dataset.id));
+    let moved = '';
+    if (kind === 'todo') {
+      // 다른 카테고리 묶음에 놓았으면 카테고리를 바꿈
+      const t = findTodo(item.dataset.id);
+      const sec = item.closest('.cat');
+      const newCat = sec && sec.dataset.cat ? sec.dataset.cat : null;
+      if (t && sec && (t.catId || null) !== newCat) {
+        t.catId = newCat;
+        moved = newCat ? `'${catOf(newCat).name}' 카테고리로 옮겼어요` : '카테고리 없이 옮겼어요';
+      }
+      reorder(data.todos, [...root.querySelectorAll('.todo')].map(el => el.dataset.id));
+    }
     else reorder(data.categories, [...list.children].filter(el => el.matches('.cat[data-cat]')).map(el => el.dataset.cat));
     save();
     render();
+    if (moved) toast(moved);
     setTimeout(() => { suppressClick = false; }, 400);
   }
 
@@ -1294,15 +1344,30 @@
     if (!v) cursor = monthOf(selected);
     render();
   }
-  let handleY = null;
+  // 첫 화면의 주 달력에서 아래로 밀면 월 달력 열기
+  function openMonthFull() {
+    view = 'month';
+    monthFolded = false; setLS(MONTHFOLD, '0');
+    cursor = monthOf(selected);
+    window.scrollTo(0, 0);
+    render();
+  }
+  let handleY = null, handleKind = null;
   document.addEventListener('touchstart', e => {
-    handleY = e.target.closest('.month-handle') ? e.touches[0].clientY : null;
+    const h = e.target.closest('.month-handle, .week-handle');
+    handleKind = h ? (h.classList.contains('week-handle') ? 'week' : 'month') : null;
+    handleY = h ? e.touches[0].clientY : null;
   }, { passive: true });
   document.addEventListener('touchend', e => {
     if (handleY === null) return;
     const dy = e.changedTouches[0].clientY - handleY;
-    handleY = null;
-    if (dy < -25) { if (!monthFolded) setMonthFolded(true); }
+    const kind = handleKind;
+    handleY = null; handleKind = null;
+    if (kind === 'week') { if (dy > -25) openMonthFull(); return; } // 아래로 밀거나 톡 → 월 달력
+    if (dy < -25) {
+      if (!monthFolded) setMonthFolded(true);
+      else { view = 'day'; render(); } // 접힌 상태에서 한 번 더 위로 밀면 첫 화면으로
+    }
     else if (dy > 25) { if (monthFolded) setMonthFolded(false); }
     else setMonthFolded(!monthFolded);
   });
@@ -1319,6 +1384,8 @@
     const dx = e.changedTouches[0].clientX - touchX, dy = e.changedTouches[0].clientY - touchY;
     const kind = swipeEl.dataset.swipe;
     touchX = null; swipeEl = null;
+    // 주 달력을 손가락으로 아래로 스윽 → 월 달력
+    if (kind === 'week' && dy > 50 && Math.abs(dy) > Math.abs(dx) * 1.5) return openMonthFull();
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
     const dir = dx < 0 ? 1 : -1;
     if (kind === 'week') selected = addDays(selected, dir * 7);
