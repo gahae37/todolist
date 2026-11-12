@@ -5,9 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>TodoList</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&display=swap" rel="stylesheet">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="apple-mobile-web-app-title" content="TodoList">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" rel="stylesheet">
 <style>
   :root {
     --bg: #ffffff;
@@ -25,7 +31,7 @@
   body {
     min-height: 100vh; min-height: 100dvh;
     background: var(--bg); color: var(--text);
-    font-family: "Gowun Dodum", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+    font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
     -webkit-font-smoothing: antialiased;
   }
   button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; padding: 0; }
@@ -90,13 +96,13 @@
   }
 
   .todos { list-style: none; margin: 4px 0 0; padding: 0; }
-  .todo { display: flex; align-items: flex-start; gap: 12px; }
+  .todo { display: flex; align-items: flex-start; gap: 10px; }
   .box {
     flex: none; width: 44px; height: 44px; margin: 0 -11px 0 -11px; display: grid; place-items: center;
   }
   .box span {
-    width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center;
-    border: 2px solid color-mix(in srgb, var(--c) 80%, #555);
+    width: 18px; height: 18px; border-radius: 6px; display: grid; place-items: center;
+    border: 1.8px solid color-mix(in srgb, var(--c) 80%, #555);
     transition: background .15s;
   }
   .done .box span, .box.on span { background: var(--c); border-color: var(--c); }
@@ -204,6 +210,38 @@
   .btn.ghost { background: none; padding: 0 10px; color: var(--sub); font-weight: 600; }
   .btn.danger { color: var(--sun); }
 
+  /* 백업 알림 */
+  .reminder {
+    display: flex; align-items: center; margin-top: 6px; border-radius: 14px;
+    background: #fdf1f4; color: #a35d70;
+  }
+  .reminder-main { flex: 1; display: flex; align-items: center; gap: 8px; padding: 11px 4px 11px 14px; text-align: left; font-size: 13px; }
+  .reminder-main span { flex: 1; }
+  .reminder-main b { font-weight: 700; text-decoration: underline; text-underline-offset: 3px; }
+  .reminder-x { width: 40px; height: 40px; display: grid; place-items: center; color: #c48a99; }
+
+  /* 설정 시트 */
+  .set-card { border-radius: 16px; background: var(--soft); overflow: hidden; }
+  .set-info { padding: 14px 16px; font-size: 14px; color: var(--sub); border-bottom: 1px solid #ebe9e5; }
+  .set-info b { color: var(--text); margin-left: 4px; }
+  .set-info span { display: block; margin-top: 3px; font-size: 12px; color: var(--muted); }
+  .set-row { width: 100%; display: flex; align-items: center; gap: 12px; padding: 14px 16px; text-align: left; }
+  .set-row + .set-row { border-top: 1px solid #ebe9e5; }
+  .set-row div { display: flex; flex-direction: column; gap: 2px; }
+  .set-row b { font-size: 15px; }
+  .set-row span { font-size: 12px; color: var(--muted); }
+
+  /* 토스트 */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); z-index: 30;
+    transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+    display: flex; align-items: center; gap: 14px; max-width: calc(100% - 32px);
+    padding: 12px 18px; border-radius: 999px; background: var(--text); color: #fff; font-size: 14px;
+    transition: opacity .2s, transform .2s; white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+  .toast button { color: #F5DC8E; font-weight: 700; }
+
   /* 상세(메모) 시트 */
   .detail-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: var(--sub); }
   .tag { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 999px; background: color-mix(in srgb, var(--c) 30%, #fff); }
@@ -218,6 +256,8 @@
 <body>
 <div class="app" id="app"></div>
 <div class="overlay" id="overlay"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast" role="status"></div>
+<input type="file" id="importFile" accept=".json,application/json" hidden>
 
 <script>
   // ============ 상수 ============
@@ -244,10 +284,14 @@
     trash: '<path d="M4 7h16M10 11v6M14 11v6M9 7V4.5h6V7M6 7l1 13h10l1-13"/>',
     check: '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
     more: '<path d="M6 12h.01M12 12h.01M18 12h.01"/>',
+    gear: '<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',
+    download: '<path d="M12 4v11M7 10l5 5 5-5M5 20h14"/>',
+    upload: '<path d="M12 15V4M7 9l5-5 5 5M5 20h14"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
   };
   const icon = (name, size = 22, sw = 1.7) =>
     `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${PATHS[name]}</svg>`;
-  const CHECK = icon('check', 14, 3);
+  const CHECK = icon('check', 12, 3);
 
   // ============ 날짜 유틸 ============
   const pad = n => String(n).padStart(2, '0');
@@ -292,6 +336,84 @@
     return { categories: cats, todos };
   }
   function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} }
+
+  // ============ 백업 ============
+  const LB = 'todolist.lastBackup', SINCE = 'todolist.since', SNOOZE = 'todolist.snoozeUntil';
+  const DAY = 24 * 60 * 60 * 1000;
+  const getLS = k => { try { return localStorage.getItem(k); } catch { return null; } };
+  const setLS = (k, v) => { try { localStorage.setItem(k, String(v)); } catch {} };
+  if (!getLS(SINCE)) setLS(SINCE, Date.now());
+  // 저장 공간이 부족해도 이 데이터는 지우지 말라고 브라우저에 요청
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
+
+  function lastBackupText() {
+    const last = Number(getLS(LB));
+    if (!last) return '아직 없음';
+    const days = Math.floor((Date.now() - last) / DAY);
+    const d = new Date(last);
+    return `${days === 0 ? '오늘' : `${days}일 전`} (${d.getMonth() + 1}월 ${d.getDate()}일)`;
+  }
+  function backupReminder() {
+    if (!data.todos.length) return '';
+    const last = Number(getLS(LB));
+    const base = last || Number(getLS(SINCE)) || Date.now();
+    if (Date.now() - base < 7 * DAY || Date.now() < (Number(getLS(SNOOZE)) || 0)) return '';
+    return last ? `백업한 지 ${Math.floor((Date.now() - last) / DAY)}일 지났어요` : '아직 백업을 한 번도 안 했어요';
+  }
+
+  function exportBackup() {
+    const now = new Date();
+    const name = `todolist-backup-${keyOf(now)}.json`;
+    const json = JSON.stringify({ app: 'TodoList', version: 2, exportedAt: now.toISOString(), data }, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const done = () => { setLS(LB, Date.now()); toast('백업 파일을 만들었어요'); if (sheet && sheet.type === 'settings') renderSheet(); };
+    // 아이폰: 공유 창으로 '파일에 저장'이나 카톡으로 보낼 수 있게
+    try {
+      const file = new File([blob], name, { type: 'application/json' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'TodoList 백업' })
+          .then(done).catch(e => { if (e.name !== 'AbortError') downloadFile(blob, name, done); });
+        return;
+      }
+    } catch {}
+    downloadFile(blob, name, done);
+  }
+  function downloadFile(blob, name, done) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    done();
+  }
+
+  async function importBackup(file) {
+    let obj;
+    try { obj = JSON.parse(await file.text()); } catch { alert('백업 파일을 읽을 수 없어요.'); return; }
+    const d = obj && obj.data ? obj.data : obj;
+    if (!d || !Array.isArray(d.categories) || !Array.isArray(d.todos)) { alert('TodoList 백업 파일이 아니에요.'); return; }
+    const when = obj.exportedAt ? new Date(obj.exportedAt) : null;
+    const whenText = when ? `${when.getFullYear()}년 ${when.getMonth() + 1}월 ${when.getDate()}일` : '이 파일';
+    if (!confirm(`${whenText} 백업으로 되돌릴까요?\n지금 있는 할 일 ${data.todos.length}개가 백업 내용(할 일 ${d.todos.length}개)으로 바뀌어요.`)) return;
+    const before = JSON.stringify(data);
+    d.todos.forEach(t => { t.memo = t.memo || ''; t.done = t.done || {}; t.days = t.days || []; });
+    data = d;
+    save();
+    filter = 'all';
+    closeSheet();
+    toast('백업을 불러왔어요', before);
+  }
+
+  // ============ 알림(토스트) + 되돌리기 ============
+  let toastTimer = null, undoData = null;
+  function toast(msg, undoSnapshot) {
+    const el = document.getElementById('toast');
+    undoData = undoSnapshot || null;
+    el.innerHTML = `<span>${esc(msg)}</span>${undoData ? '<button data-action="undo">되돌리기</button>' : ''}`;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { el.classList.remove('show'); undoData = null; }, undoData ? 6000 : 2500);
+  }
 
   // ============ 반복 로직 ============
   function occursOn(t, k) {
@@ -384,14 +506,20 @@
     }).join('');
 
     const isToday = selected === tk;
+    const reminder = backupReminder();
     return `
       <div class="bar">
         <span class="brand">TodoList</span>
         <div class="actions">
           ${isToday ? '' : `<button class="pill" data-action="selectDay" data-date="${tk}">오늘</button>`}
           <button class="icon-btn" data-action="openMonth" aria-label="월 달력 보기">${icon('calendar')}</button>
+          <button class="icon-btn" data-action="openSettings" aria-label="설정·백업">${icon('gear', 21)}</button>
         </div>
       </div>
+      ${reminder ? `<div class="reminder">
+        <button class="reminder-main" data-action="openSettings">${icon('download', 16, 2)}<span>${reminder}</span><b>백업하기</b></button>
+        <button class="reminder-x" data-action="snoozeBackup" aria-label="나중에">${icon('close', 14, 2)}</button>
+      </div>` : ''}
       <div class="date-head">
         <div class="eyebrow">${isToday ? '오늘' : `${sd.getFullYear()}년`}</div>
         <h1>${sd.getMonth() + 1}월 ${sd.getDate()}일 ${DOW[sd.getDay()]}요일</h1>
@@ -459,6 +587,29 @@
   function renderSheet() {
     const el = document.getElementById('sheet');
     const s = sheet;
+
+    if (s.type === 'settings') {
+      el.innerHTML = `
+        <div class="grab"></div>
+        <h3>설정</h3>
+        <div class="label">백업</div>
+        <div class="set-card">
+          <div class="set-info">
+            <div>마지막 백업 <b>${lastBackupText()}</b></div>
+            <span>할 일 ${data.todos.length}개 · 카테고리 ${data.categories.length}개</span>
+          </div>
+          <button class="set-row" data-action="exportBackup">${icon('download', 20)}
+            <div><b>백업 내보내기</b><span>파일로 저장해서 '파일' 앱이나 카톡에 보관하세요</span></div></button>
+          <button class="set-row" data-action="importBackup">${icon('upload', 20)}
+            <div><b>백업 가져오기</b><span>백업 파일로 할 일을 전부 되돌려요</span></div></button>
+        </div>
+        <div class="hint">백업 파일은 폰 밖(카톡, 클라우드)에 보관해야 안전해요. 7일 동안 백업하지 않으면 첫 화면에서 알려 드려요.</div>
+        <div class="sheet-actions">
+          <span class="spacer"></span>
+          <button class="btn primary" data-action="closeSheet">닫기</button>
+        </div>`;
+      return;
+    }
 
     if (s.type === 'detail') {
       const t = findTodo(s.id);
@@ -549,6 +700,7 @@
 
   function openSheet(s, focus = true) {
     sheet = s;
+    document.getElementById('toast').classList.remove('show'); // 팝업 버튼을 가리지 않게
     renderSheet();
     fitOverlay();
     document.getElementById('overlay').classList.add('show');
@@ -613,6 +765,17 @@
         save(); break;
       }
       case 'filter': filter = id; break;
+      case 'openSettings': return openSheet({ type: 'settings' }, false);
+      case 'snoozeBackup': setLS(SNOOZE, Date.now() + 3 * DAY); break;
+      case 'exportBackup': return exportBackup();
+      case 'importBackup': return document.getElementById('importFile').click();
+      case 'undo': {
+        if (!undoData) return;
+        data = JSON.parse(undoData);
+        save();
+        toast('되돌렸어요');
+        break;
+      }
       case 'openDetail': return openSheet({ type: 'detail', id }, false);
       case 'addTodo':
         return openSheet({ type: 'todo', id: null, text: '', catId: id, date: selected, repeat: 'none', days: new Set([parse(selected).getDay()]) });
@@ -640,8 +803,10 @@
       case 'deleteTodo': {
         const t = findTodo(sheet.id);
         if (!confirm(t.repeat !== 'none' ? '반복되는 할 일 전체가 삭제됩니다. 삭제할까요?' : '이 할 일을 삭제할까요?')) return;
+        const before = JSON.stringify(data);
         data.todos = data.todos.filter(x => x.id !== t.id);
-        save(); return closeSheet();
+        save(); closeSheet();
+        return toast('할 일을 삭제했어요', before);
       }
 
       // 추가/수정 시트
@@ -658,13 +823,21 @@
         const c = catOf(sheet.id);
         const cnt = data.todos.filter(t => t.catId === c.id).length;
         if (!confirm(`'${c.name}' 카테고리${cnt ? `와 할 일 ${cnt}개` : ''}를 삭제할까요?`)) return;
+        const before = JSON.stringify(data);
         data.categories = data.categories.filter(x => x.id !== c.id);
         data.todos = data.todos.filter(t => t.catId !== c.id);
-        save(); return closeSheet();
+        save(); closeSheet();
+        return toast(`'${c.name}' 카테고리를 삭제했어요`, before);
       }
       default: return;
     }
     render();
+  });
+
+  document.getElementById('importFile').addEventListener('change', e => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (f) importBackup(f);
   });
 
   // 메모 자동 저장
