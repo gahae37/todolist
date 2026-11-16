@@ -150,7 +150,7 @@
   .dow div { text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); padding-bottom: 6px; }
   .dow .sun, .cell.sun .num { color: var(--sun); }
   .dow .sat, .cell.sat .num { color: var(--sat); }
-  .grid { touch-action: pan-y; }
+  .grid, .fade[data-swipe] { touch-action: pan-y; }
   .cell { min-height: 64px; padding: 4px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .cell .num { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 600; }
   .cell.other { opacity: .3; }
@@ -771,7 +771,7 @@
         <span class="${weekExpanded ? 'up' : ''}">${icon('down', 16, 2)}</span>${weekExpanded ? '한 주로 접기' : '한 달 펼치기'}
       </button>
       ${filters}
-      <div class="fade">
+      <div class="fade" data-swipe="day">
         ${items.length ? `<div class="progress"><span>${doneCount}/${items.length}</span><div class="track"><i style="width:${pct}%"></i></div><span>${pct}%</span></div>` : ''}
         ${sections || '<div class="empty-all">아래 + 버튼으로 할 일을 추가해 보세요</div>'}
       </div>
@@ -1417,6 +1417,7 @@
     if (!press) return;
     const item = press.item;
     press = null;
+    swipeEl = null; // 순서를 바꾸는 중에는 옆 날짜로 넘어가지 않게
     const kind = item.classList.contains('todo') ? 'todo' : 'cat';
     const list = item.parentElement;
     // 할 일은 다른 카테고리로도 옮길 수 있으니, 같은 화면(첫 화면 목록 / 월 달력 아래 목록) 전체가 범위
@@ -1561,7 +1562,12 @@
     if (kind === 'dayMonth' && vertical && dy < 0) return setWeekExpanded(false);
     if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy)) return;
     const dir = dx < 0 ? 1 : -1;
-    if (kind === 'week') selected = addDays(selected, dir * 7);
+    if (kind === 'day') { // 할 일 목록을 좌우로 밀면 하루씩 넘기기 (세로 스크롤과 헷갈리지 않게 가로로 확실히 밀었을 때만)
+      if (sheet || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      selected = addDays(selected, dir);
+      if (weekExpanded && monthOf(selected).getTime() !== cursor.getTime()) cursor = monthOf(selected);
+    }
+    else if (kind === 'week') selected = addDays(selected, dir * 7);
     else if (kind === 'dayMonth') cursor = new Date(cursor.getFullYear(), cursor.getMonth() + dir, 1);
     else shiftMonthView(dir);
     render();
