@@ -144,7 +144,23 @@
 
   /* ---------- 월 달력 ---------- */
   .month-bar { display: flex; align-items: center; height: 44px; margin: 0 -12px; }
-  .month-bar h1 { margin: 0 auto 0 0; font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+  .month-bar h1 { margin: 0; font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
+  .month-bar .date-jump { margin-right: auto; }
+  /* 달력 양옆 이전·다음 달 화살표: 마우스를 쓰는 PC에서만 보임 (폰은 좌우로 밀어서 넘김) */
+  .month-card { position: relative; }
+  .side-arrow { display: none; }
+  @media (hover: hover) and (pointer: fine) and (min-width: 560px) {
+    .side-arrow { display: grid; place-items: center; position: absolute; top: 45%; width: 36px; height: 36px; border-radius: 50%; color: var(--muted); }
+    .side-arrow.prev { left: -46px; }
+    .side-arrow.next { right: -46px; }
+    .side-arrow:hover { background: var(--soft); color: var(--text); }
+  }
+  .month-bar .icon-btn { width: 38px; flex: none; } /* 버튼이 하나 늘어 폰에서도 한 줄에 들어가게 */
+  /* 제목을 누르면 날짜 고르는 달력이 열림 (투명한 날짜 입력칸을 제목 위에 덮음) */
+  .date-jump { display: inline-flex; align-items: center; gap: 4px; }
+  .date-jump svg { color: var(--muted); flex: none; }
+  .date-head .date-jump { margin-top: 2px; }
+  .date-head .date-jump h1 { margin: 0; }
   .dow, .grid { display: grid; grid-template-columns: repeat(7, 1fr); }
   .month-card { margin-top: 14px; }
   .dow div { text-align: center; font-size: 12px; font-weight: 600; color: var(--muted); padding-bottom: 6px; }
@@ -348,7 +364,7 @@
   .todo.imp .todo-main { padding-right: 4px; }
   .add-chip { width: 36px; padding: 0; justify-content: center; border: 1.5px dashed #d4d2ce; background: #fff; }
   .shift-row { margin-top: 6px; }
-  .confirm-desc { font-size: 14px; line-height: 1.55; color: var(--sub); }
+  .confirm-desc { font-size: 14px; line-height: 1.55; color: var(--sub); white-space: pre-line; word-break: break-all; }
   .btn.primary.warn { background: #e06c6c; }
 
   /* 꾹 눌러서 순서 바꾸기 */
@@ -766,7 +782,10 @@
       </div>` : ''}
       <div class="date-head">
         <div class="eyebrow">${isToday ? '오늘' : `${sd.getFullYear()}년`}</div>
-        <h1>${sd.getMonth() + 1}월 ${sd.getDate()}일 ${DOW[sd.getDay()]}요일</h1>
+        <label class="date-jump date-chip">
+          <h1>${sd.getMonth() + 1}월 ${sd.getDate()}일 ${DOW[sd.getDay()]}요일</h1>${icon('down', 18, 2)}
+          <input type="date" id="jumpDate" value="${selected}" aria-label="다른 날짜로 이동">
+        </label>
       </div>
       <div class="week" data-swipe="week">
         <button class="icon-btn" data-action="moveWeek" data-n="-7" aria-label="이전 주">${icon('left', 18)}</button>
@@ -882,13 +901,17 @@
     return `
       <div class="month-bar">
         <button class="icon-btn" data-action="closeMonth" aria-label="돌아가기">${icon('left')}</button>
-        <h1>${y}년 ${m + 1}월</h1>
+        <label class="date-jump date-chip">
+          <h1>${y}년 ${m + 1}월</h1>${icon('down', 16, 2)}
+          <input type="date" id="jumpDate" value="${selected}" aria-label="다른 날짜로 이동">
+        </label>
         <button class="pill" data-action="thisMonth">오늘</button>
-        <button class="icon-btn" data-action="moveMonth" data-n="-1" aria-label="이전 달">${icon('left', 18)}</button>
-        <button class="icon-btn" data-action="moveMonth" data-n="1" aria-label="다음 달">${icon('right', 18)}</button>
+        <button class="icon-btn" data-action="openSettings" aria-label="설정·백업">${icon('gear', 21)}</button>
       </div>
       <div class="fade">
         <div class="month-card">
+        <button class="side-arrow prev" data-action="moveMonth" data-n="-1" aria-label="이전 달">${icon('left', 20)}</button>
+        <button class="side-arrow next" data-action="moveMonth" data-n="1" aria-label="다음 달">${icon('right', 20)}</button>
         <div class="dow">${DOW.map((n, i) => `<div class="${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${n}</div>`).join('')}</div>
         <div class="grid" data-swipe="month">${cells}</div>
         <button class="month-fold" data-action="foldMonth">
@@ -937,8 +960,11 @@
         <div class="label">동기화</div>
         <div class="set-card">
           <div class="set-info"><div>서버 저장 <b>${syncText_()}</b></div></div>
-          <button class="set-row" data-action="openSync">${icon('repeat', 20)}
-            <div><b>${getLS(SYNCKEY) ? '동기화 코드 바꾸기' : '동기화 코드 입력'}</b><span>코드를 넣으면 앱을 지우거나 폰을 바꿔도 데이터가 남아요</span></div></button>
+          ${getLS(SYNCKEY)
+            ? `<button class="set-row" data-action="unlinkSync">${icon('close', 20)}
+            <div><b>동기화 연결 끊기</b><span>코드는 한 번 연결하면 바꿀 수 없어요. 잘못 넣었을 때만 끊고 다시 연결하세요</span></div></button>`
+            : `<button class="set-row" data-action="openSync">${icon('repeat', 20)}
+            <div><b>동기화 코드 입력</b><span>코드를 넣으면 앱을 지우거나 폰을 바꿔도 데이터가 남아요</span></div></button>`}
         </div>
         <div class="label">백업</div>
         <div class="set-card">
@@ -966,7 +992,7 @@
           <button class="head-btn" data-action="closeSheet" aria-label="닫기">${icon('close', 20)}</button>
         </div>
         <input type="text" id="sheetText" placeholder="나만의 코드 (8자 이상)" value="${esc(s.text)}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
-        <div class="hint">${getLS(SYNCKEY) ? '비워서 저장하면 동기화를 꺼요. 서버에 있는 데이터는 지워지지 않아요.' : '같은 코드를 넣은 기기끼리만 데이터를 함께 써요. 코드는 남에게 알려 주지 말고, 따로 적어 두세요. 새 코드면 이 기기의 할 일이 그 코드로 올라가고, 이미 쓰고 있는 코드면 저장된 내용을 불러올지 먼저 물어봐요.'}</div>
+        <div class="hint">같은 코드를 넣은 기기끼리만 데이터를 함께 써요. 코드는 한 번 연결하면 바꿀 수 없으니, 내 코드가 맞는지 꼭 확인하세요. 남에게 알려 주지 말고 따로 적어 두세요. 새 코드면 이 기기의 할 일이 그 코드로 올라가고, 이미 쓰고 있는 코드면 저장된 내용을 불러올지 먼저 물어봐요.</div>
         <div class="sheet-actions">
           <span class="spacer"></span>
           <button class="btn primary" data-action="saveSheet">저장</button>
@@ -1162,9 +1188,14 @@
     const text = sheet.text.trim();
     if (sheet.type === 'sync') {
       if (text && text.length < 8) { toast('코드는 8자 이상으로 정해 주세요'); return; }
-      if (text && text === getLS(SYNCKEY)) { closeSheet(); return; }
-      if (text) { linkCode(text); return; }
-      else { try { localStorage.removeItem(SYNCKEY); } catch {} syncState = 'off'; closeSheet(); toast('동기화를 껐어요'); }
+      if (!text) { closeSheet(); return; }
+      if (getLS(SYNCKEY)) { closeSheet(); return; } // 이미 연결돼 있으면 코드를 바꿀 수 없음
+      askConfirm({ // 잘못 입력하거나 남의 코드를 넣지 않았는지 한 번 더 확인
+        title: '이 코드로 연결할까요?',
+        desc: `코드: ${text}\n한 번 연결하면 앱에서 바꿀 수 없어요. 내 코드가 맞는지 확인해 주세요.`,
+        ok: '연결', back: sheet,
+        onOk: () => linkCode(text),
+      });
       return;
     }
     if (!text) return document.getElementById('sheetText').focus();
@@ -1231,7 +1262,14 @@
       }
       case 'filter': filter = id; break;
       case 'openSettings': return openSheet({ type: 'settings' }, false);
-      case 'openSync': return openSheet({ type: 'sync', text: getLS(SYNCKEY) || '' });
+      case 'openSync': return getLS(SYNCKEY) ? undefined : openSheet({ type: 'sync', text: '' });
+      case 'unlinkSync': // 잘못 연결했을 때만: 연결을 끊음 (이 기기의 할 일과 서버의 데이터는 그대로 남음)
+        return askConfirm({
+          title: '동기화 연결을 끊을까요?',
+          desc: '이 기기의 할 일과 서버의 데이터는 지워지지 않아요. 끊은 뒤 다른 코드로 연결하면 이 기기의 내용이 그 코드에 올라가거나 섞일 수 있으니, 내 코드가 확실할 때만 끊어 주세요.',
+          ok: '연결 끊기', danger: true, back: sheet,
+          onOk: () => { try { localStorage.removeItem(SYNCKEY); } catch {} syncState = 'off'; closeSheet(); toast('동기화 연결을 끊었어요'); },
+        });
       case 'snoozeBackup': setLS(SNOOZE, Date.now() + 3 * DAY); break;
       case 'exportBackup': return exportBackup();
       case 'importBackup': return document.getElementById('importFile').click();
@@ -1350,11 +1388,19 @@
 
   // 반복 끝나는 날짜 고르기 (PC 브라우저에서도 칩을 누르면 달력이 열리게)
   document.addEventListener('click', e => {
-    if (e.target.id === 'untilDate' || e.target.id === 'dateInput') { try { e.target.showPicker(); } catch {} }
+    if (['untilDate', 'dateInput', 'jumpDate'].includes(e.target.id)) { try { e.target.showPicker(); } catch {} }
+  });
+  // 제목의 날짜를 누르면 달력 팝업이 열리고, 고른 날짜로 바로 이동
+  document.addEventListener('change', e => {
+    if (e.target.id !== 'jumpDate' || !e.target.value) return;
+    selected = e.target.value;
+    cursor = monthOf(selected);
+    render();
   });
   document.addEventListener('change', e => {
     if (!sheet) return;
-    if (e.target.id === 'untilDate') { sheet.until = e.target.value || null; rerenderSheet(); }    if (e.target.id === 'dateInput' && e.target.value) {
+    if (e.target.id === 'untilDate') { sheet.until = e.target.value || null; rerenderSheet(); }
+    if (e.target.id === 'dateInput' && e.target.value) {
       sheet.date = e.target.value;
       if (sheet.until && sheet.until < sheet.date) sheet.until = null;
       rerenderSheet();
