@@ -452,13 +452,82 @@
     } catch {}
     return { categories: cats, todos };
   }
-  function save() { try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} }
+  function save() {
+    data.updatedAt = Date.now();
+    try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
+    schedulePush();
+  }
+
+  // ============ 서버 동기화 (Vercel + Redis) ============
+  // 동기화 코드를 넣으면 켜지고, 없으면 예전처럼 이 폰에만 저장됨. 폰 저장소는 오프라인용 사본으로 계속 씀.
+  const SYNCKEY = 'todolist.syncKey';
+  let syncState = getLS(SYNCKEY) ? 'idle' : 'off'; // off | idle | ok | offline | badkey
+  let pushTimer = null, pushing = false;
+
+  const syncFetch = (method, body, keepalive) => fetch('/api/data', {
+    method, keepalive: !!keepalive,
+    headers: { 'x-sync-key': getLS(SYNCKEY) || '', 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  function setSyncState(s) { syncState = s; if (sheet && sheet.type === 'settings') rerenderSheet(); }
+  function normalize(d) {
+    d.categories.forEach(c => { c.color = OLD_TO_PASTEL[String(c.color).toLowerCase()] || c.color; });
+    d.todos.forEach(t => { t.memo = t.memo || ''; t.done = t.done || {}; t.days = t.days || []; });
+    return d;
+  }
+  function schedulePush() {
+    if (!getLS(SYNCKEY)) return;
+    clearTimeout(pushTimer);
+    pushTimer = setTimeout(push, 800);
+  }
+  async function push(keepalive) {
+    clearTimeout(pushTimer);
+    if (!getLS(SYNCKEY) || pushing) return;
+    pushing = true;
+    try {
+      const r = await syncFetch('PUT', { data }, keepalive);
+      if (r.status === 401) setSyncState('badkey');
+      else if (r.status === 409) { pushing = false; await pull(); return; }
+      else if (r.ok) setSyncState('ok');
+      else setSyncState('offline');
+    } catch { setSyncState('offline'); }
+    pushing = false;
+  }
+  // 서버 내용이 더 새로우면 가져오고, 이 기기가 더 새로우면 올림
+  async function pull(firstLink) {
+    if (!getLS(SYNCKEY)) return;
+    try {
+      const r = await syncFetch('GET');
+      if (r.status === 401) return setSyncState('badkey');
+      if (!r.ok) return setSyncState('offline');
+      const s = await r.json();
+      const local = data.updatedAt || 0;
+      if (s.data && s.updatedAt > local) {
+        const before = JSON.stringify(data);
+        data = normalize(s.data);
+        try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
+        setSyncState('ok');
+        if (!sheet) render();
+        if (firstLink && JSON.parse(before).todos.length) toast('서버에 저장된 내용을 불러왔어요', before);
+      } else if (!s.data || s.updatedAt < local) {
+        await push();
+      } else setSyncState('ok');
+    } catch { setSyncState('offline'); }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') { if (pushTimer) push(true); }
+    else pull();
+  });
+  window.addEventListener('online', () => pull());
+  function syncText_() {
+    return { off: '꺼짐 — 이 폰에만 저장돼요', idle: '확인 중…', ok: '켜짐 — 서버에 저장되고 있어요', offline: '서버에 연결할 수 없어요 (연결되면 자동으로 저장)', badkey: '동기화 코드가 맞지 않아요' }[syncState];
+  }
 
   // ============ 백업 ============
   const LB = 'todolist.lastBackup', SINCE = 'todolist.since', SNOOZE = 'todolist.snoozeUntil';
   const DAY = 24 * 60 * 60 * 1000;
-  const getLS = k => { try { return localStorage.getItem(k); } catch { return null; } };
-  const setLS = (k, v) => { try { localStorage.setItem(k, String(v)); } catch {} };
+  function getLS(k) { try { return localStorage.getItem(k); } catch { return null; } }
+  function setLS(k, v) { try { localStorage.setItem(k, String(v)); } catch {} }
   if (!getLS(SINCE)) setLS(SINCE, Date.now());
   // 저장 공간이 부족해도 이 데이터는 지우지 말라고 브라우저에 요청
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch {}
@@ -866,6 +935,12 @@
       el.innerHTML = `
         <div class="grab"></div>
         <h3>설정</h3>
+        <div class="label">동기화</div>
+        <div class="set-card">
+          <div class="set-info"><div>서버 저장 <b>${syncText_()}</b></div></div>
+          <button class="set-row" data-action="openSync">${icon('repeat', 20)}
+            <div><b>${getLS(SYNCKEY) ? '동기화 코드 바꾸기' : '동기화 코드 입력'}</b><span>코드를 넣으면 앱을 지우거나 폰을 바꿔도 데이터가 남아요</span></div></button>
+        </div>
         <div class="label">백업</div>
         <div class="set-card">
           <div class="set-info">
@@ -881,6 +956,21 @@
         <div class="sheet-actions">
           <span class="spacer"></span>
           <button class="btn primary" data-action="closeSheet">닫기</button>
+        </div>`;
+      return;
+    }
+
+    if (s.type === 'sync') {
+      el.innerHTML = `
+        <div class="sheet-head">
+          <h3>동기화 코드</h3>
+          <button class="head-btn" data-action="closeSheet" aria-label="닫기">${icon('close', 20)}</button>
+        </div>
+        <input type="text" id="sheetText" placeholder="Vercel에 설정한 SYNC_KEY" value="${esc(s.text)}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
+        <div class="hint">${getLS(SYNCKEY) ? '비워서 저장하면 동기화를 꺼요. 서버에 있는 데이터는 지워지지 않아요.' : '이 기기에 이미 있는 할 일은 서버가 비어 있으면 그대로 올라가고, 서버에 내용이 있으면 서버 내용으로 바뀌어요(되돌리기 가능).'}</div>
+        <div class="sheet-actions">
+          <span class="spacer"></span>
+          <button class="btn primary" data-action="saveSheet">저장</button>
         </div>`;
       return;
     }
@@ -1053,6 +1143,11 @@
   function saveSheet() {
     syncText();
     const text = sheet.text.trim();
+    if (sheet.type === 'sync') {
+      if (text) { setLS(SYNCKEY, text); syncState = 'idle'; closeSheet(); pull(true); }
+      else { try { localStorage.removeItem(SYNCKEY); } catch {} syncState = 'off'; closeSheet(); toast('동기화를 껐어요'); }
+      return;
+    }
     if (!text) return document.getElementById('sheetText').focus();
 
     if (sheet.type === 'todo') {
@@ -1112,6 +1207,7 @@
       }
       case 'filter': filter = id; break;
       case 'openSettings': return openSheet({ type: 'settings' }, false);
+      case 'openSync': return openSheet({ type: 'sync', text: getLS(SYNCKEY) || '' });
       case 'snoozeBackup': setLS(SNOOZE, Date.now() + 3 * DAY); break;
       case 'exportBackup': return exportBackup();
       case 'importBackup': return document.getElementById('importFile').click();
@@ -1457,6 +1553,7 @@
   setInterval(() => { if (todayKey() !== lastDay) { lastDay = todayKey(); if (!sheet) render(); } }, 60 * 1000);
 
   render();
+  pull();
 </script>
 </body>
 </html>
