@@ -1,8 +1,8 @@
 // Vercel 서버리스 함수: 할 일 데이터를 Redis(Upstash)에 저장/불러오기
-// 환경변수: SYNC_KEY(동기화 코드), KV_REST_API_URL / KV_REST_API_TOKEN (Upstash 연결 시 자동 생성)
+// 동기화 코드별로 데이터를 따로 저장함 (코드의 해시값이 저장 키). 환경변수: KV_REST_API_URL / KV_REST_API_TOKEN (Upstash 연결 시 자동 생성)
+const crypto = require('crypto');
 const URL_ = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
 const TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-const KEY = 'todo:data';
 
 async function redis(...cmd) {
   const r = await fetch(URL_, {
@@ -17,8 +17,10 @@ async function redis(...cmd) {
 
 module.exports = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
-  if (!process.env.SYNC_KEY || !URL_ || !TOKEN) return res.status(500).json({ error: 'server not configured' });
-  if (req.headers['x-sync-key'] !== process.env.SYNC_KEY) return res.status(401).json({ error: 'bad key' });
+  if (!URL_ || !TOKEN) return res.status(500).json({ error: 'server not configured' });
+  const code = String(req.headers['x-sync-key'] || '');
+  if (code.length < 8 || code.length > 100) return res.status(401).json({ error: 'bad key' });
+  const KEY = `todo:${crypto.createHash('sha256').update(code).digest('hex')}`;
 
   try {
     const cur = JSON.parse((await redis('GET', KEY)) || 'null'); // { updatedAt, data } 또는 null
@@ -35,7 +37,7 @@ module.exports = async (req, res) => {
       await redis('SET', KEY, value);
       // 하루에 한 번 스냅샷을 30일간 보관 (실수로 지워도 복구 가능)
       const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
-      await redis('SET', `todo:snapshot:${day}`, value, 'EX', 30 * 86400, 'NX');
+      await redis('SET', `${KEY}:snapshot:${day}`, value, 'EX', 30 * 86400, 'NX');
       return res.status(200).json({ ok: true, updatedAt });
     }
 
