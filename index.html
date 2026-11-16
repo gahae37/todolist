@@ -328,7 +328,7 @@
   .star-btn.on { color: var(--gold, #e5ac3a); }
   .star-btn.on svg { fill: currentColor; }
   /* 중요한 할 일: 줄 오른쪽 끝에 노란 별 */
-  .star-mark { flex: none; align-self: center; display: grid; place-items: center; width: 24px; color: #e5ac3a; }
+  .star-mark { flex: none; align-self: center; display: grid; place-items: center; width: 34px; height: 34px; margin-right: -6px; padding: 0; border: 0; background: none; cursor: pointer; color: #e5ac3a; }
   .star-mark svg { fill: currentColor; }
   .todo.imp .todo-main { padding-right: 4px; }
   .add-chip { width: 36px; padding: 0; justify-content: center; border: 1.5px dashed #d4d2ce; background: #fff; }
@@ -634,6 +634,9 @@
   const isDone = (t, k) => !!t.done[k];
   const findTodo = id => data.todos.find(t => t.id === id);
   const catOf = id => data.categories.find(c => c.id === id) || { id: '', color: '#C9C4BE', name: '' };
+  // 카테고리를 삭제하면 endDate(삭제한 날)부터는 안 보이고, 그 이전 날짜 기록은 남음
+  const catLive = (c, k) => !c.endDate || k < c.endDate;
+  const catsOn = k => data.categories.filter(c => catLive(c, k));
 
   function repeatLabel(t) {
     const base = repeatBase(t);
@@ -707,15 +710,16 @@
     }).join('');
 
     // 선택한 카테고리만 보여 주기
-    if (filter !== 'all' && !data.categories.some(c => c.id === filter)) filter = 'all';
-    const visibleCats = filter === 'all' ? data.categories : data.categories.filter(c => c.id === filter);
+    const liveCats = catsOn(selected);
+    if (filter !== 'all' && !liveCats.some(c => c.id === filter)) filter = 'all';
+    const visibleCats = filter === 'all' ? liveCats : liveCats.filter(c => c.id === filter);
     const items = filter === 'all' ? todosOn(selected) : todosOn(selected).filter(t => t.catId === filter);
     const doneCount = items.filter(t => isDone(t, selected)).length;
     const pct = items.length ? Math.round(doneCount / items.length * 100) : 0;
 
     // 접혀 있을 때 선택한 카테고리가 가려지지 않도록 앞으로
     const chipCats = chipsFolded && filter !== 'all'
-      ? [...visibleCats, ...data.categories.filter(c => c.id !== filter)] : data.categories;
+      ? [...visibleCats, ...liveCats.filter(c => c.id !== filter)] : liveCats;
     const filters = `
       <div class="filters${chipsFolded ? ' folded' : ''}">
         <div class="filter-scroll">
@@ -789,7 +793,7 @@
       <button class="todo-main" data-action="openDetail" data-id="${t.id}">
         <div class="t">${esc(t.text)}</div>${meta ? `<div class="meta">${meta}</div>` : ''}
       </button>
-      ${t.important ? `<span class="star-mark" aria-label="중요">${icon('star', 16, 2)}</span>` : ''}
+      ${t.important ? `<button class="star-mark" data-action="unstar" data-id="${t.id}" aria-label="중요 해제">${icon('star', 16, 2)}</button>` : ''}
     </li>`;
   }
   function section({ id, name, color, list, k, none }) {
@@ -945,7 +949,7 @@
         <div class="set-card">
           <div class="set-info">
             <div>마지막 백업 <b>${lastBackupText()}</b></div>
-            <span>할 일 ${data.todos.length}개 · 카테고리 ${data.categories.length}개</span>
+            <span>할 일 ${data.todos.length}개 · 카테고리 ${data.categories.filter(c => !c.endDate).length}개</span>
           </div>
           <button class="set-row" data-action="exportBackup">${icon('download', 20)}
             <div><b>백업 내보내기</b><span>파일로 저장해서 '파일' 앱이나 카톡에 보관하세요</span></div></button>
@@ -995,7 +999,7 @@
         <div class="label">카테고리 <span class="opt">(선택)</span></div>
         <div class="chips">
           <button class="chip${!s.catId ? ' on' : ''}" data-action="sheetCat" data-id="">없음</button>
-          ${data.categories.map(c =>
+          ${data.categories.filter(c => catLive(c, s.date) || c.id === s.catId).map(c =>
           `<button class="chip${c.id === s.catId ? ' on' : ''}" style="--c:${c.color}" data-action="sheetCat" data-id="${c.id}"><i></i>${esc(c.name)}</button>`).join('')}
           <button class="chip add-chip" data-action="newCatFromTodo" aria-label="새 카테고리 만들기">${icon('plus', 15, 2)}</button></div>
         <div class="label">${s.repeat !== 'none' ? '시작 날짜' : '날짜'}</div>
@@ -1197,6 +1201,14 @@
         selected = date;
         if (weekExpanded && monthOf(date).getTime() !== cursor.getTime()) cursor = monthOf(date);
         break;
+      case 'unstar': { // 목록의 별을 누르면 중요 표시 해제
+        const t = findTodo(id);
+        if (!t) return;
+        t.important = false;
+        save();
+        toast('중요 표시를 뺐어요');
+        break;
+      }
       case 'toggleWeekExpand': return setWeekExpanded(!weekExpanded);
       case 'dayMonthMove': cursor = new Date(cursor.getFullYear(), cursor.getMonth() + Number(n), 1); break;
       case 'moveWeek': selected = addDays(selected, Number(n)); break;
@@ -1286,15 +1298,21 @@
       case 'deleteCat': {
         syncText();
         const c = catOf(sheet.id);
-        const cnt = data.todos.filter(t => t.catId === c.id).length;
+        const from = selected;
         return askConfirm({
           title: `'${c.name}' 카테고리를 삭제할까요?`,
-          desc: cnt ? `이 카테고리의 할 일 ${cnt}개도 같이 삭제돼요.` : '이 카테고리에는 할 일이 없어요.',
+          desc: `${md(from)}부터 이 카테고리가 사라지고, 그 날짜 이후의 할 일도 같이 삭제돼요. ${md(from)} 이전 기록은 그대로 남아요.`,
           ok: '삭제', danger: true, back: sheet,
           onOk: () => {
             const before = JSON.stringify(data);
-            data.categories = data.categories.filter(x => x.id !== c.id);
-            data.todos = data.todos.filter(t => t.catId !== c.id);
+            // 그날부터의 할 일 삭제, 그 전부터 이어진 반복은 전날까지만 남김
+            data.todos = data.todos.filter(t => !(t.catId === c.id && t.date >= from));
+            data.todos.forEach(t => {
+              if (t.catId === c.id && t.repeat !== 'none' && (!t.until || t.until >= from)) t.until = addDays(from, -1);
+            });
+            // 이전 기록이 남아 있으면 카테고리는 '삭제한 날'만 기록해 두고, 하나도 없으면 완전히 지움
+            if (data.todos.some(t => t.catId === c.id)) data.categories.find(x => x.id === c.id).endDate = from;
+            else data.categories = data.categories.filter(x => x.id !== c.id);
             save(); closeSheet();
             toast(`'${c.name}' 카테고리를 삭제했어요`, before);
           },
