@@ -482,9 +482,9 @@
   let syncState = getLS(SYNCKEY) ? 'idle' : 'off'; // off | idle | ok | offline | badkey
   let pushTimer = null, pushing = false;
 
-  const syncFetch = (method, body, keepalive) => fetch('/api/data', {
+  const syncFetch = (method, body, keepalive, key) => fetch('/api/data', {
     method, keepalive: !!keepalive,
-    headers: { 'x-sync-key': getLS(SYNCKEY) || '', 'Content-Type': 'application/json' },
+    headers: { 'x-sync-key': key || getLS(SYNCKEY) || '', 'Content-Type': 'application/json' },
     body: body ? JSON.stringify(body) : undefined,
   });
   function setSyncState(s) { syncState = s; if (sheet && sheet.type === 'settings') rerenderSheet(); }
@@ -512,7 +512,7 @@
     pushing = false;
   }
   // 서버 내용이 더 새로우면 가져오고, 이 기기가 더 새로우면 올림
-  async function pull(firstLink) {
+  async function pull() {
     if (!getLS(SYNCKEY)) return;
     try {
       const r = await syncFetch('GET');
@@ -521,16 +521,40 @@
       const s = await r.json();
       const local = data.updatedAt || 0;
       if (s.data && s.updatedAt > local) {
-        const before = JSON.stringify(data);
         data = normalize(s.data);
         try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {}
         setSyncState('ok');
         if (!sheet) render();
-        if (firstLink && JSON.parse(before).todos.length) toast('서버에 저장된 내용을 불러왔어요', before);
       } else if (!s.data || s.updatedAt < local) {
         await push();
       } else setSyncState('ok');
     } catch { setSyncState('offline'); }
+  }
+  // 코드를 새로 넣거나 바꿀 때: 그 코드에 이미 저장된 내용이 있으면 이 기기의 내용으로 덮어쓰지 않고, 먼저 물어봄
+  async function linkCode(code) {
+    try {
+      const r = await syncFetch('GET', null, false, code);
+      if (r.status === 401) return toast('코드는 8자 이상으로 정해 주세요');
+      if (!r.ok) return toast('서버에 연결할 수 없어요');
+      const s = await r.json();
+      const apply = useServer => {
+        setLS(SYNCKEY, code);
+        syncState = 'idle';
+        if (useServer) { data = normalize(s.data); try { localStorage.setItem(KEY, JSON.stringify(data)); } catch {} }
+        filter = 'all';
+        closeSheet();
+        if (useServer) { setSyncState('ok'); toast('서버에 저장된 내용을 불러왔어요'); }
+        else { push(); toast('이 기기의 할 일을 서버에 올렸어요'); }
+      };
+      if (!s.data) return apply(false);              // 새 코드(서버가 비어 있음): 이 기기의 내용을 올림
+      if (!data.todos.length) return apply(true);    // 이 기기가 비어 있음: 서버 내용을 가져옴
+      askConfirm({
+        title: '이 코드에는 이미 저장된 할 일이 있어요',
+        desc: `서버에 할 일 ${s.data.todos.length}개가 있어요. 계속하면 이 기기의 할 일 ${data.todos.length}개는 사라지고 서버 내용으로 바뀌어요. 내 코드가 맞는지 확인하고, 이 기기의 내용이 필요하면 먼저 '백업 내보내기'를 해 두세요.`,
+        ok: '불러오기', danger: true, back: sheet,
+        onOk: () => apply(true),
+      });
+    } catch { toast('서버에 연결할 수 없어요'); }
   }
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') { if (pushTimer) push(true); }
@@ -942,7 +966,7 @@
           <button class="head-btn" data-action="closeSheet" aria-label="닫기">${icon('close', 20)}</button>
         </div>
         <input type="text" id="sheetText" placeholder="나만의 코드 (8자 이상)" value="${esc(s.text)}" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="done">
-        <div class="hint">${getLS(SYNCKEY) ? '비워서 저장하면 동기화를 꺼요. 서버에 있는 데이터는 지워지지 않아요.' : '같은 코드를 넣은 기기끼리만 데이터를 함께 써요. 코드는 남에게 알려 주지 말고, 따로 적어 두세요. 이 기기에 이미 있는 할 일은 서버가 비어 있으면 그대로 올라가고, 서버에 내용이 있으면 서버 내용으로 바뀌어요(되돌리기 가능).'}</div>
+        <div class="hint">${getLS(SYNCKEY) ? '비워서 저장하면 동기화를 꺼요. 서버에 있는 데이터는 지워지지 않아요.' : '같은 코드를 넣은 기기끼리만 데이터를 함께 써요. 코드는 남에게 알려 주지 말고, 따로 적어 두세요. 새 코드면 이 기기의 할 일이 그 코드로 올라가고, 이미 쓰고 있는 코드면 저장된 내용을 불러올지 먼저 물어봐요.'}</div>
         <div class="sheet-actions">
           <span class="spacer"></span>
           <button class="btn primary" data-action="saveSheet">저장</button>
@@ -1138,7 +1162,8 @@
     const text = sheet.text.trim();
     if (sheet.type === 'sync') {
       if (text && text.length < 8) { toast('코드는 8자 이상으로 정해 주세요'); return; }
-      if (text) { setLS(SYNCKEY, text); syncState = 'idle'; closeSheet(); pull(true); }
+      if (text && text === getLS(SYNCKEY)) { closeSheet(); return; }
+      if (text) { linkCode(text); return; }
       else { try { localStorage.removeItem(SYNCKEY); } catch {} syncState = 'off'; closeSheet(); toast('동기화를 껐어요'); }
       return;
     }
