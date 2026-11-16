@@ -1518,7 +1518,7 @@
       if (sheet || Math.abs(dx) < Math.abs(dy) * 1.5) return;
       selected = addDays(selected, dir);
     }
-    else if (kind === 'week') selected = addDays(selected, dir); // 주 달력을 밀면 하루씩 (한 주씩은 양옆 화살표)
+    else if (kind === 'week') selected = addDays(selected, dir * 7); // 주 달력을 밀면 한 주씩 (할 일 목록을 밀면 하루씩)
     else shiftMonthView(dir);
     render();
   });
