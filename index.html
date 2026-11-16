@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#ffffff">
 <title>TodoList</title>
 <link rel="icon" href="icon.svg" type="image/svg+xml">
@@ -241,8 +241,9 @@
     position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
     font-size: 16px; border: 0; padding: 0;
   }
-  .time-pick { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-  .time-pick select { font: inherit; font-size: 16px; color: var(--text); padding: 10px 12px; border-radius: 12px; border: 1.5px solid transparent; background: var(--soft); outline: none; }
+  .time-pick { display: flex; align-items: center; gap: 4px; margin-top: 8px; }
+  .time-pick select { font: inherit; font-size: 13px; color: var(--text); padding: 3px 4px; border-radius: 8px; border: 0; background: var(--soft); outline: none; }
+  .time-pick .tp-ok { margin-left: 6px; padding: 4px 6px; font-size: 13px; font-weight: 600; color: var(--muted); background: none; border: 0; }
   .hint { margin-top: 10px; font-size: 12px; color: var(--muted); }
   .swatches { display: flex; flex-wrap: wrap; gap: 12px; }
   .swatch { width: 36px; height: 36px; border-radius: 50%; background: var(--c); display: grid; place-items: center; }
@@ -327,6 +328,7 @@
   .panel-head h2 { margin: 2px 0 0; font-size: 20px; font-weight: 800; letter-spacing: -0.4px; }
   .empty-day { padding: 24px 0; text-align: center; font-size: 14px; color: var(--muted); }
   .day-panel { border-top: 1px solid #e9e7e3; padding-top: 18px; }
+
 
   /* 반복 할 일 삭제 고르기 */
   .del-desc { margin: -4px 0 14px; font-size: 13px; color: var(--sub); }
@@ -997,7 +999,7 @@
             <select id="tpHour" aria-label="시">${Array.from({ length: 12 }, (_, i) => opt(i + 1, i + 1, th % 12 || 12)).join('')}</select>
             <span>:</span>
             <select id="tpMin" aria-label="분">${Array.from({ length: 60 }, (_, i) => opt(i, pad(i), tm)).join('')}</select>
-            <button class="chip on" data-action="sheetTimeOk">확인</button>
+            <button class="tp-ok" data-action="sheetTimeOk">확인</button>
           </div>`;
         })() : ''}
         <div class="label">메모</div>
