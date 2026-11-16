@@ -241,6 +241,8 @@
     position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;
     font-size: 16px; border: 0; padding: 0;
   }
+  .time-pick { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  .time-pick select { font: inherit; font-size: 16px; color: var(--text); padding: 10px 12px; border-radius: 12px; border: 1.5px solid transparent; background: var(--soft); outline: none; }
   .hint { margin-top: 10px; font-size: 12px; color: var(--muted); }
   .swatches { display: flex; flex-wrap: wrap; gap: 12px; }
   .swatch { width: 36px; height: 36px; border-radius: 50%; background: var(--c); display: grid; place-items: center; }
@@ -976,18 +978,28 @@
             <input type="date" id="dateInput" value="${s.date}">
           </label>
         </div>
-        <div class="chips shift-row">
+        ${s.id ? `<div class="chips shift-row">
           <button class="chip" data-action="sheetShift" data-n="1">하루 미루기</button>
           <button class="chip" data-action="sheetShift" data-n="7">일주일 미루기</button>
-        </div>
+        </div>` : ''}
         <div class="label">시간</div>
         <div class="chips">
-          <button class="chip${!s.time ? ' on' : ''}" data-action="sheetTime" data-v="">시간 설정 안 함</button>
-          <label class="chip date-chip${s.time ? ' on' : ''}">
+          <button class="chip${!s.time && !s.timePick ? ' on' : ''}" data-action="sheetTime" data-v="">시간 설정 안 함</button>
+          <button class="chip${s.time || s.timePick ? ' on' : ''}" data-action="sheetTimePick">
             ${icon('clock', 15, 2)}<span>${s.time ? fmtTime(s.time) : '시간 고르기'}</span>
-            <input type="time" id="timeInput" value="${s.time || ''}">
-          </label>
+          </button>
         </div>
+        ${s.timePick ? (() => {
+          const [th, tm] = s.time ? s.time.split(':').map(Number) : [9, 0]; // 처음 열면 오전 9:00 (현재 시간이 아님)
+          const opt = (v, label, cur) => `<option value="${v}"${v === cur ? ' selected' : ''}>${label}</option>`;
+          return `<div class="time-pick">
+            <select id="tpAmpm" aria-label="오전 오후">${opt(0, '오전', th < 12 ? 0 : 1)}${opt(1, '오후', th < 12 ? 0 : 1)}</select>
+            <select id="tpHour" aria-label="시">${Array.from({ length: 12 }, (_, i) => opt(i + 1, i + 1, th % 12 || 12)).join('')}</select>
+            <span>:</span>
+            <select id="tpMin" aria-label="분">${Array.from({ length: 60 }, (_, i) => opt(i, pad(i), tm)).join('')}</select>
+            <button class="chip on" data-action="sheetTimeOk">확인</button>
+          </div>`;
+        })() : ''}
         <div class="label">메모</div>
         <textarea id="memo" placeholder="메모를 남겨 보세요 (선택)">${esc(s.memo || '')}</textarea>
         <div class="label">반복</div>
@@ -1256,7 +1268,14 @@
       case 'sheetImp':
         syncText(); sheet.important = !sheet.important; renderSheet();
         return toast(sheet.important ? '중요 표시를 했어요' : '중요 표시를 뺐어요');
-      case 'sheetTime': sheet.time = v || null; return rerenderSheet();
+      case 'sheetTime': sheet.time = null; sheet.timePick = false; return rerenderSheet();
+      case 'sheetTimePick': sheet.timePick = !sheet.timePick; return rerenderSheet();
+      case 'sheetTimeOk': { // 시·분을 직접 고르고 '확인'을 눌러야 시간이 정해짐
+        const h = Number(document.getElementById('tpHour').value) % 12 + (Number(document.getElementById('tpAmpm').value) ? 12 : 0);
+        sheet.time = `${pad(h)}:${pad(Number(document.getElementById('tpMin').value))}`;
+        sheet.timePick = false;
+        return rerenderSheet();
+      }
       case 'sheetRepeat': sheet.repeat = v; return rerenderSheet();
       case 'sheetUntil': sheet.until = v || null; return rerenderSheet();
       case 'sheetDay': { const d = Number(v); sheet.days.has(d) ? sheet.days.delete(d) : sheet.days.add(d); return rerenderSheet(); }
@@ -1304,13 +1323,11 @@
 
   // 반복 끝나는 날짜 고르기 (PC 브라우저에서도 칩을 누르면 달력이 열리게)
   document.addEventListener('click', e => {
-    if (['untilDate', 'dateInput', 'timeInput'].includes(e.target.id)) { try { e.target.showPicker(); } catch {} }
+    if (e.target.id === 'untilDate' || e.target.id === 'dateInput') { try { e.target.showPicker(); } catch {} }
   });
   document.addEventListener('change', e => {
     if (!sheet) return;
-    if (e.target.id === 'untilDate') { sheet.until = e.target.value || null; rerenderSheet(); }
-    if (e.target.id === 'timeInput') { sheet.time = e.target.value || null; rerenderSheet(); }
-    if (e.target.id === 'dateInput' && e.target.value) {
+    if (e.target.id === 'untilDate') { sheet.until = e.target.value || null; rerenderSheet(); }    if (e.target.id === 'dateInput' && e.target.value) {
       sheet.date = e.target.value;
       if (sheet.until && sheet.until < sheet.date) sheet.until = null;
       rerenderSheet();
