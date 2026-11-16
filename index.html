@@ -151,6 +151,8 @@
   .dow .sun, .cell.sun .num { color: var(--sun); }
   .dow .sat, .cell.sat .num { color: var(--sat); }
   .grid, .fade[data-swipe] { touch-action: pan-y; }
+  /* 할 일이 없어도 화면 아래까지 밀어서 날짜를 넘길 수 있게 */
+  .fade[data-swipe="day"] { min-height: 60vh; min-height: 60dvh; padding-bottom: 90px; }
   .cell { min-height: 64px; padding: 4px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
   .cell .num { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 600; }
   .cell.other { opacity: .3; }
