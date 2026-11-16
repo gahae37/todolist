@@ -876,7 +876,8 @@
   // 월 달력 칸 미리보기: 할 일 제목을 카테고리 색 띠로 최대 3개, 나머지는 +N (끝낸 할 일은 흐리게)
   const CELL_MAX = 3;
   function cellEvents(all, k) {
-    const list = all.filter(t => !t.hideInMonth); // 눈 표시로 숨긴 할 일은 칸 미리보기에서 뺌
+    const hiddenCats = new Set(data.categories.filter(c => c.hideInMonth).map(c => c.id));
+    const list = all.filter(t => !t.hideInMonth && !hiddenCats.has(t.catId)); // 눈 표시로 숨긴 할 일·카테고리는 칸 미리보기에서 뺌
     if (!list.length) return '';
     const known = new Set(data.categories.map(c => c.id));
     const row = t => `<span class="ev${isDone(t, k) ? ' done' : ''}" style="--c:${t.catId && known.has(t.catId) ? catOf(t.catId).color : NONE_COLOR}">${esc(t.text)}</span>`;
@@ -1130,6 +1131,7 @@
     el.innerHTML = `
       <div class="sheet-head">
         <h3>${s.id ? '카테고리 편집' : '새 카테고리'}</h3>
+        <button class="head-btn eye-btn${s.hideInMonth ? ' on' : ''}" data-action="sheetHide" aria-label="${s.hideInMonth ? '월 달력에 표시하기' : '월 달력에서 숨기기'}" aria-pressed="${!!s.hideInMonth}">${icon(s.hideInMonth ? 'eyeoff' : 'eye', 21)}</button>
         ${s.id ? `<button class="head-btn danger" data-action="deleteCat" aria-label="카테고리 삭제">${icon('trash', 20)}</button>` : ''}
         <button class="head-btn" data-action="closeSheet" aria-label="닫기">${icon('close', 20)}</button>
       </div>
@@ -1234,10 +1236,10 @@
       if (moved) toast(moved);
       return;
     } else {
-      if (sheet.id) Object.assign(data.categories.find(c => c.id === sheet.id), { name: text, color: sheet.color });
+      if (sheet.id) Object.assign(data.categories.find(c => c.id === sheet.id), { name: text, color: sheet.color, hideInMonth: !!sheet.hideInMonth });
       else {
         const newId = uid();
-        data.categories.push({ id: newId, name: text, color: sheet.color });
+        data.categories.push({ id: newId, name: text, color: sheet.color, hideInMonth: !!sheet.hideInMonth });
         // 할 일 창에서 + 로 만든 카테고리면, 할 일 창으로 돌아가서 새 카테고리를 골라 둠
         if (sheet.back) { const back = sheet.back; back.catId = newId; save(); return openSheet(back, false); }
       }
@@ -1297,7 +1299,7 @@
       case 'addTodo':
         return openSheet({ type: 'todo', id: null, text: '', memo: '', important: false, catId: id || null, date: selected, time: null, repeat: 'none', until: null, days: new Set([parse(selected).getDay()]) });
       case 'addCat': return openSheet({ type: 'cat', id: null, text: '', color: COLORS[data.categories.length % COLORS.length] });
-      case 'editCat': { const c = catOf(id); return openSheet({ type: 'cat', id: c.id, text: c.name, color: c.color }); }
+      case 'editCat': { const c = catOf(id); return openSheet({ type: 'cat', id: c.id, text: c.name, color: c.color, hideInMonth: !!c.hideInMonth }); }
 
       // 월 달력
       case 'closeMonth': view = 'day'; break;
