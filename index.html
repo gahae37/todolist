@@ -68,7 +68,8 @@
   .wd .w { font-size: 11px; font-weight: 600; color: var(--muted); }
   .wd.sun .w { color: var(--sun); }
   .wd.sat .w { color: var(--sat); }
-  .wd .n { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 700; }
+  .wd .n { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; font-size: 15px; font-weight: 700; transition: transform .12s; }
+  .wd:active .n { transform: scale(.9); }
   .wd.today .n { background: var(--soft); }
   .wd.selected .n { background: var(--text); color: #fff; }
   .wd .st { width: 5px; height: 5px; border-radius: 50%; }
@@ -108,8 +109,9 @@
   .box span {
     width: 15px; height: 15px; border-radius: 5px; display: grid; place-items: center;
     border: 1.6px solid color-mix(in srgb, var(--c) 80%, #555);
-    transition: background .15s;
+    transition: background .15s, transform .12s;
   }
+  .box:active span { transform: scale(.82); }
   .done .box span, .box.on span { background: var(--c); border-color: var(--c); }
   .todo-main {
     flex: 1; min-width: 0; min-height: 44px; padding: 11px 0; text-align: left;
@@ -170,7 +172,8 @@
   /* 할 일이 없어도 화면 아래까지 밀어서 날짜를 넘길 수 있게 */
   .fade[data-swipe="day"] { min-height: 60vh; min-height: 60dvh; padding-bottom: 90px; }
   .cell { min-height: 64px; padding: 4px 0 6px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-  .cell .num { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 600; }
+  .cell .num { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 600; transition: transform .12s; }
+  .cell:active .num { transform: scale(.88); }
   .cell.other { opacity: .3; }
   /* 월 달력: 칸 안에 할 일 제목 미리보기 */
   .month-card .dow, .month-card .grid { grid-template-columns: repeat(7, minmax(0, 1fr)); }
@@ -225,7 +228,7 @@
   .sheet {
     width: 100%; max-width: 420px; max-height: 100%; background: #fff;
     display: flex; flex-direction: column; overflow: hidden;
-    border-radius: 22px; padding: 16px 0 18px;
+    border-radius: 26px; padding: 18px 0 18px;
     box-shadow: 0 12px 40px rgba(30, 30, 34, .18);
     animation: pop .2s cubic-bezier(.2, .8, .2, 1);
   }
@@ -258,7 +261,12 @@
     font-size: 16px; border: 0; padding: 0;
   }
   .time-pick { display: flex; align-items: center; gap: 5px; margin-top: 8px; }
-  .time-pick select { font: inherit; font-size: 14px; color: var(--sub); padding: 5px 7px; min-width: 50px; border-radius: 10px; border: 0; background: var(--soft); outline: none; }
+  /* 선택 칸 오른쪽의 위아래 화살표: 기본(검정) 대신 옅은 회색으로 직접 그림 */
+  .time-pick select {
+    -webkit-appearance: none; appearance: none;
+    font: inherit; font-size: 14px; color: var(--sub); padding: 5px 22px 5px 10px; min-width: 56px; border-radius: 10px; border: 0; outline: none;
+    background: var(--soft) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='12' viewBox='0 0 8 12' fill='none' stroke='%23b3b3b8' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1 4.5L4 1.5L7 4.5M1 7.5L4 10.5L7 7.5'/%3E%3C/svg%3E") no-repeat right 8px center / 8px 12px;
+  }
   .time-pick span { color: var(--muted); }
   .time-pick .tp-ok { margin-left: 6px; padding: 6px 5px; font-size: 14px; font-weight: 600; color: var(--muted); background: none; border: 0; }
   .hint { margin-top: 10px; font-size: 12px; color: var(--muted); }
@@ -336,8 +344,9 @@
     position: fixed; z-index: 8; width: 56px; height: 56px; border-radius: 50%;
     right: max(20px, calc(50% - 240px + 20px)); bottom: calc(24px + env(safe-area-inset-bottom));
     display: grid; place-items: center; background: var(--text); color: #fff;
-    box-shadow: 0 8px 20px rgba(30, 30, 34, .25);
+    box-shadow: 0 8px 20px rgba(30, 30, 34, .25); transition: transform .12s;
   }
+  .fab:active { transform: scale(.92); opacity: 1; }
 
   /* 월 달력 아래: 고른 날짜의 할 일 */
   .day-panel { margin-top: 22px; }
